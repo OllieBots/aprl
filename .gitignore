@@ -1,0 +1,9 @@
+node_modules/
+client/node_modules/
+server/node_modules/
+client/dist/
+server/db/aprl.db
+server/db/aprl.db-shm
+server/db/aprl.db-wal
+.env
+*.local
