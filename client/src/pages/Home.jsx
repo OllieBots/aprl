@@ -145,23 +145,22 @@ function Nav() {
           ))}
         </div>
 
-        {/* Admin login */}
-        <Link
-          to="/admin"
-          className="flex items-center gap-2 px-4 py-2 rounded-md text-sm font-semibold"
-          style={{
-            background: 'var(--accent)',
-            color: 'white',
-            textDecoration: 'none',
-          }}
-          onMouseEnter={e => e.currentTarget.style.opacity = '0.9'}
-          onMouseLeave={e => e.currentTarget.style.opacity = '1'}
-        >
-          <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5">
-            <circle cx="12" cy="8" r="4"/><path d="M6 20v-2a6 6 0 0 1 12 0v2"/>
-          </svg>
-          League Admin
-        </Link>
+        <div style={{ display: 'flex', alignItems: 'center', gap: 10 }}>
+          <Link
+            to="/login"
+            className="px-4 py-2 rounded-md text-sm font-semibold"
+            style={{ color: 'var(--text2)', textDecoration: 'none', border: '1px solid var(--border2)' }}
+          >
+            Sign In
+          </Link>
+          <Link
+            to="/signup"
+            className="flex items-center gap-2 px-4 py-2 rounded-md text-sm font-semibold"
+            style={{ background: 'var(--accent)', color: 'white', textDecoration: 'none' }}
+          >
+            Join APRL
+          </Link>
+        </div>
       </div>
     </nav>
   );
@@ -511,7 +510,7 @@ function Footer() {
         <div className="flex items-center gap-6">
           <a href="#" className="text-xs" style={{ color: 'var(--text3)', textDecoration: 'none' }}>Terms</a>
           <a href="#" className="text-xs" style={{ color: 'var(--text3)', textDecoration: 'none' }}>Privacy</a>
-          <Link to="/admin" className="text-xs" style={{ color: 'var(--text3)', textDecoration: 'none' }}>Admin Login</Link>
+          <Link to="/login" className="text-xs" style={{ color: 'var(--text3)', textDecoration: 'none' }}>Driver Login</Link>
         </div>
       </div>
     </footer>

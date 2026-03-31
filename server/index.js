@@ -14,6 +14,11 @@ app.use(cors({ origin: allowedOrigins, credentials: true }));
 app.use(express.json());
 
 // Routes
+app.use('/api/auth',     require('./routes/auth'));
+app.use('/api/user',     require('./routes/user'));
+app.use('/api/public',   require('./routes/public'));
+app.use('/api/public/leagues/:slug/incidents', require('./routes/incidents'));
+app.use('/api/members',  require('./routes/members'));
 app.use('/api/league',   require('./routes/league'));
 app.use('/api/seasons',  require('./routes/seasons'));
 app.use('/api/drivers',  require('./routes/drivers'));

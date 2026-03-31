@@ -1,128 +1,192 @@
-const Database = require('better-sqlite3');
-const path = require('path');
+const { Pool } = require('pg');
 const fs = require('fs');
+const path = require('path');
 
-const DB_PATH = path.join(__dirname, 'aprl.db');
-const SCHEMA_PATH = path.join(__dirname, 'schema.sql');
-
-const db = new Database(DB_PATH);
-
-// Enable WAL mode for better performance
-db.pragma('journal_mode = WAL');
-db.pragma('foreign_keys = ON');
-
-// Run schema
-const schema = fs.readFileSync(SCHEMA_PATH, 'utf8');
-db.exec(schema);
-
-// Seed default league row if empty
-const league = db.prepare('SELECT id FROM league WHERE id = 1').get();
-if (!league) {
-  db.prepare(`
-    INSERT INTO league (id, name) VALUES (1, 'Apex Pro Racing League')
-  `).run();
+// Parse DATABASE_URL manually so special characters in passwords don't break URL parsing
+function buildPoolConfig(url) {
+  try {
+    const u = new URL(url);
+    return {
+      host:     u.hostname,
+      port:     parseInt(u.port) || 5432,
+      database: u.pathname.replace(/^\//, ''),
+      user:     decodeURIComponent(u.username),
+      password: decodeURIComponent(u.password),
+      ssl:      { rejectUnauthorized: false },
+    };
+  } catch {
+    return { connectionString: url, ssl: { rejectUnauthorized: false } };
+  }
 }
 
-// Seed default season if empty
-const season = db.prepare('SELECT id FROM seasons LIMIT 1').get();
-if (!season) {
-  const defaultScoring = JSON.stringify({
-    p1: 50, p2: 40, p3: 35, p4: 30, p5: 27, p6: 24, p7: 22, p8: 20,
-    p9: 18, p10: 16, p11: 14, p12: 12, p13: 10, p14: 9, p15: 8,
-    p16: 7, p17: 6, p18: 5, p19: 4, p20: 3, pole: 3, fl: 1
-  });
-  db.prepare(`
-    INSERT INTO seasons (league_id, name, series, car_class, is_active, scoring_config)
-    VALUES (1, 'Season 1 - 2025', 'GT3 Championship', 'GT3', 1, ?)
-  `).run(defaultScoring);
+const pool = new Pool(buildPoolConfig(process.env.DATABASE_URL));
+
+// Convert SQLite-style ? placeholders to Postgres $1, $2, ...
+function toPgParams(sql) {
+  let i = 0;
+  return sql.replace(/\?/g, () => `$${++i}`);
 }
 
-// Seed mock drivers if empty
-const driverCount = db.prepare('SELECT COUNT(*) as cnt FROM drivers').get();
-if (driverCount.cnt === 0) {
-  const drivers = [
-    { name: 'Alex Mercer', car_number: '44', car_model: 'BMW M4 GT3', irating: 4823, safety_rating_class: 'A', safety_rating_value: 3.72, status: 'active' },
-    { name: 'Jordan Walsh', car_number: '7', car_model: 'Porsche 911 GT3 R', irating: 4456, safety_rating_class: 'A', safety_rating_value: 4.10, status: 'active' },
-    { name: 'Sam Torres', car_number: '19', car_model: 'Ferrari 296 GT3', irating: 3991, safety_rating_class: 'A', safety_rating_value: 3.45, status: 'active' },
-    { name: 'Riley Chen', car_number: '31', car_model: 'Audi R8 LMS GT3', irating: 3654, safety_rating_class: 'B', safety_rating_value: 4.89, status: 'active' },
-    { name: 'Casey Morgan', car_number: '55', car_model: 'Mercedes-AMG GT3', irating: 3421, safety_rating_class: 'B', safety_rating_value: 3.22, status: 'active' },
-    { name: 'Drew Harlow', car_number: '8', car_model: 'Lamborghini Huracan GT3', irating: 3187, safety_rating_class: 'B', safety_rating_value: 2.98, status: 'active' },
-    { name: 'Taylor Brooks', car_number: '23', car_model: 'BMW M4 GT3', irating: 2934, safety_rating_class: 'C', safety_rating_value: 4.21, status: 'active' },
-    { name: 'Morgan Price', car_number: '12', car_model: 'Porsche 911 GT3 R', irating: 2711, safety_rating_class: 'C', safety_rating_value: 3.67, status: 'inactive' },
-  ];
-  const insert = db.prepare(`
-    INSERT INTO drivers (name, car_number, car_model, irating, safety_rating_class, safety_rating_value, status)
-    VALUES (@name, @car_number, @car_model, @irating, @safety_rating_class, @safety_rating_value, @status)
-  `);
-  drivers.forEach(d => insert.run(d));
+function flatten(params) {
+  return params.length === 1 && Array.isArray(params[0]) ? params[0] : params;
 }
 
-// Seed mock races if empty
-const raceCount = db.prepare('SELECT COUNT(*) as cnt FROM races').get();
-if (raceCount.cnt === 0) {
-  const season1 = db.prepare('SELECT id FROM seasons LIMIT 1').get();
-  const now = Math.floor(Date.now() / 1000);
-  const races = [
-    { season_id: season1.id, round_number: 1, track_name: 'Nürburgring', track_config: 'Grand Prix', scheduled_at: now - 86400 * 30, laps: 30, status: 'completed' },
-    { season_id: season1.id, round_number: 2, track_name: 'Spa-Francorchamps', track_config: 'Full Circuit', scheduled_at: now - 86400 * 16, laps: 25, status: 'completed' },
-    { season_id: season1.id, round_number: 3, track_name: 'Monza', track_config: 'Full Circuit', scheduled_at: now - 86400 * 2, laps: 35, status: 'completed' },
-    { season_id: season1.id, round_number: 4, track_name: 'Silverstone', track_config: 'Grand Prix', scheduled_at: now + 86400 * 5, laps: 28, status: 'upcoming' },
-    { season_id: season1.id, round_number: 5, track_name: 'Circuit de Barcelona-Catalunya', track_config: 'Grand Prix', scheduled_at: now + 86400 * 19, laps: 32, status: 'upcoming' },
-    { season_id: season1.id, round_number: 6, track_name: 'Suzuka Circuit', track_config: 'Grand Prix', scheduled_at: now + 86400 * 33, laps: 30, status: 'upcoming' },
-  ];
-  const insert = db.prepare(`
-    INSERT INTO races (season_id, round_number, track_name, track_config, scheduled_at, laps, status)
-    VALUES (@season_id, @round_number, @track_name, @track_config, @scheduled_at, @laps, @status)
-  `);
-  races.forEach(r => insert.run(r));
-}
+const db = {
+  // Returns array of rows
+  async all(sql, ...params) {
+    const p = flatten(params);
+    const { rows } = await pool.query(toPgParams(sql), p.length ? p : undefined);
+    return rows;
+  },
 
-// Seed mock race results if empty
-const resultCount = db.prepare('SELECT COUNT(*) as cnt FROM race_results').get();
-if (resultCount.cnt === 0) {
-  const completedRaces = db.prepare("SELECT id FROM races WHERE status = 'completed'").all();
-  const drivers = db.prepare('SELECT id FROM drivers').all();
+  // Returns first row or null
+  async get(sql, ...params) {
+    const p = flatten(params);
+    const { rows } = await pool.query(toPgParams(sql), p.length ? p : undefined);
+    return rows[0] || null;
+  },
 
-  const insertResult = db.prepare(`
-    INSERT INTO race_results (race_id, driver_id, finish_position, starting_position, laps_completed, laps_led, fastest_lap_time, incidents, points_awarded, dnf)
-    VALUES (@race_id, @driver_id, @finish_position, @starting_position, @laps_completed, @laps_led, @fastest_lap_time, @incidents, @points_awarded, @dnf)
-  `);
+  // Runs a statement, no return value needed (UPDATE, DELETE)
+  async run(sql, ...params) {
+    const p = flatten(params);
+    await pool.query(toPgParams(sql), p.length ? p : undefined);
+  },
 
-  const pointsMap = [50, 40, 35, 30, 27, 24, 22, 20];
-  completedRaces.forEach(race => {
-    const shuffled = [...drivers].sort(() => Math.random() - 0.5);
-    shuffled.forEach((driver, i) => {
-      insertResult.run({
-        race_id: race.id,
-        driver_id: driver.id,
-        finish_position: i + 1,
-        starting_position: Math.floor(Math.random() * 8) + 1,
-        laps_completed: 30 - Math.floor(Math.random() * 3),
-        laps_led: i === 0 ? Math.floor(Math.random() * 15) + 5 : Math.floor(Math.random() * 5),
-        fastest_lap_time: 90 + Math.random() * 10,
-        incidents: Math.floor(Math.random() * 6),
-        points_awarded: pointsMap[i] || 0,
-        dnf: 0,
-      });
+  // INSERT — appends RETURNING id and returns { lastInsertRowid }
+  async insert(sql, ...params) {
+    const p = flatten(params);
+    const { rows } = await pool.query(toPgParams(sql) + ' RETURNING id', p.length ? p : undefined);
+    return { lastInsertRowid: rows[0]?.id };
+  },
+
+  pool,
+};
+
+// ---------------------------------------------------------------------------
+// Initialize schema + seed data on first boot
+// ---------------------------------------------------------------------------
+async function initDb() {
+  const schema = fs.readFileSync(path.join(__dirname, 'schema.sql'), 'utf8');
+  await pool.query(schema);
+
+  // Migrate existing tables — safe to run repeatedly
+  await pool.query(`ALTER TABLE league ADD COLUMN IF NOT EXISTS slug TEXT UNIQUE`);
+  await pool.query(`ALTER TABLE league ADD COLUMN IF NOT EXISTS description TEXT`);
+  await pool.query(`ALTER TABLE league ADD COLUMN IF NOT EXISTS owner_user_id INTEGER REFERENCES users(id)`);
+  await pool.query(`ALTER TABLE drivers ADD COLUMN IF NOT EXISTS user_id INTEGER REFERENCES users(id)`);
+
+  // Seed default league row
+  const league = await db.get('SELECT id FROM league WHERE id = 1');
+  if (!league) {
+    await db.run("INSERT INTO league (id, name, slug) VALUES (1, 'Apex Pro Racing League', 'aprl')");
+  }
+
+  // Ensure slug is set on existing league row
+  await db.run("UPDATE league SET slug = 'aprl' WHERE id = 1 AND slug IS NULL");
+
+  // Seed default season
+  const season = await db.get('SELECT id FROM seasons LIMIT 1');
+  if (!season) {
+    const defaultScoring = JSON.stringify({
+      p1: 50, p2: 40, p3: 35, p4: 30, p5: 27, p6: 24, p7: 22, p8: 20,
+      p9: 18, p10: 16, p11: 14, p12: 12, p13: 10, p14: 9, p15: 8,
+      p16: 7, p17: 6, p18: 5, p19: 4, p20: 3, pole: 3, fl: 1,
     });
-  });
-}
+    await db.run(
+      'INSERT INTO seasons (league_id, name, series, car_class, is_active, scoring_config) VALUES (1, ?, ?, ?, 1, ?)',
+      'Season 1 - 2025', 'GT3 Championship', 'GT3', defaultScoring
+    );
+  }
 
-// Seed activity log if empty
-const logCount = db.prepare('SELECT COUNT(*) as cnt FROM activity_log').get();
-if (logCount.cnt === 0) {
-  const logs = [
-    { type: 'result', message: 'Race results imported for Round 3 — Monza' },
-    { type: 'driver', message: 'Driver Morgan Price status changed to Inactive' },
-    { type: 'discord', message: 'Standings posted to #standings channel' },
-    { type: 'result', message: 'Race results imported for Round 2 — Spa-Francorchamps' },
-    { type: 'settings', message: 'Scoring system updated by admin' },
-    { type: 'driver', message: 'Drew Harlow joined the league roster' },
-    { type: 'result', message: 'Race results imported for Round 1 — Nürburgring' },
-    { type: 'discord', message: 'Bot connected to APRL Discord server' },
-  ];
-  const insert = db.prepare('INSERT INTO activity_log (type, message) VALUES (@type, @message)');
-  logs.forEach(l => insert.run(l));
+  // Seed mock drivers
+  const driverCount = await db.get('SELECT COUNT(*)::int as cnt FROM drivers');
+  if (driverCount.cnt === 0) {
+    const drivers = [
+      ['Alex Mercer',   '44', 'BMW M4 GT3',              4823, 'A', 3.72, 'active'],
+      ['Jordan Walsh',  '7',  'Porsche 911 GT3 R',       4456, 'A', 4.10, 'active'],
+      ['Sam Torres',    '19', 'Ferrari 296 GT3',         3991, 'A', 3.45, 'active'],
+      ['Riley Chen',    '31', 'Audi R8 LMS GT3',         3654, 'B', 4.89, 'active'],
+      ['Casey Morgan',  '55', 'Mercedes-AMG GT3',        3421, 'B', 3.22, 'active'],
+      ['Drew Harlow',   '8',  'Lamborghini Huracan GT3', 3187, 'B', 2.98, 'active'],
+      ['Taylor Brooks', '23', 'BMW M4 GT3',              2934, 'C', 4.21, 'active'],
+      ['Morgan Price',  '12', 'Porsche 911 GT3 R',       2711, 'C', 3.67, 'inactive'],
+    ];
+    for (const [name, car_number, car_model, irating, src, srv, status] of drivers) {
+      await db.run(
+        'INSERT INTO drivers (name, car_number, car_model, irating, safety_rating_class, safety_rating_value, status) VALUES (?, ?, ?, ?, ?, ?, ?)',
+        name, car_number, car_model, irating, src, srv, status
+      );
+    }
+  }
+
+  // Seed mock races
+  const raceCount = await db.get('SELECT COUNT(*)::int as cnt FROM races');
+  if (raceCount.cnt === 0) {
+    const season1 = await db.get('SELECT id FROM seasons LIMIT 1');
+    const now = Math.floor(Date.now() / 1000);
+    const races = [
+      [season1.id, 1, 'Nürburgring',                   'Grand Prix',  now - 86400 * 30, 30, 'completed'],
+      [season1.id, 2, 'Spa-Francorchamps',              'Full Circuit', now - 86400 * 16, 25, 'completed'],
+      [season1.id, 3, 'Monza',                          'Full Circuit', now - 86400 * 2,  35, 'completed'],
+      [season1.id, 4, 'Silverstone',                    'Grand Prix',  now + 86400 * 5,  28, 'upcoming'],
+      [season1.id, 5, 'Circuit de Barcelona-Catalunya', 'Grand Prix',  now + 86400 * 19, 32, 'upcoming'],
+      [season1.id, 6, 'Suzuka Circuit',                 'Grand Prix',  now + 86400 * 33, 30, 'upcoming'],
+    ];
+    for (const [sid, rn, track, cfg, sat, laps, status] of races) {
+      await db.run(
+        'INSERT INTO races (season_id, round_number, track_name, track_config, scheduled_at, laps, status) VALUES (?, ?, ?, ?, ?, ?, ?)',
+        sid, rn, track, cfg, sat, laps, status
+      );
+    }
+  }
+
+  // Seed mock race results
+  const resultCount = await db.get('SELECT COUNT(*)::int as cnt FROM race_results');
+  if (resultCount.cnt === 0) {
+    const completedRaces = await db.all("SELECT id FROM races WHERE status = 'completed'");
+    const allDrivers = await db.all('SELECT id FROM drivers');
+    const pointsMap = [50, 40, 35, 30, 27, 24, 22, 20];
+
+    for (const race of completedRaces) {
+      const shuffled = [...allDrivers].sort(() => Math.random() - 0.5);
+      for (let i = 0; i < shuffled.length; i++) {
+        await db.run(
+          `INSERT INTO race_results
+            (race_id, driver_id, finish_position, starting_position, laps_completed,
+             laps_led, fastest_lap_time, incidents, points_awarded, dnf)
+           VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, 0)`,
+          race.id, shuffled[i].id, i + 1,
+          Math.floor(Math.random() * 8) + 1,
+          30 - Math.floor(Math.random() * 3),
+          i === 0 ? Math.floor(Math.random() * 15) + 5 : Math.floor(Math.random() * 5),
+          90 + Math.random() * 10,
+          Math.floor(Math.random() * 6),
+          pointsMap[i] || 0
+        );
+      }
+    }
+  }
+
+  // Seed activity log
+  const logCount = await db.get('SELECT COUNT(*)::int as cnt FROM activity_log');
+  if (logCount.cnt === 0) {
+    const logs = [
+      ['result',   'Race results imported for Round 3 — Monza'],
+      ['driver',   'Driver Morgan Price status changed to Inactive'],
+      ['discord',  'Standings posted to #standings channel'],
+      ['result',   'Race results imported for Round 2 — Spa-Francorchamps'],
+      ['settings', 'Scoring system updated by admin'],
+      ['driver',   'Drew Harlow joined the league roster'],
+      ['result',   'Race results imported for Round 1 — Nürburgring'],
+      ['discord',  'Bot connected to APRL Discord server'],
+    ];
+    for (const [type, message] of logs) {
+      await db.run('INSERT INTO activity_log (type, message) VALUES (?, ?)', type, message);
+    }
+  }
+
+  console.log('[DB] Supabase connected and schema ready');
 }
 
 module.exports = db;
+module.exports.initDb = initDb;

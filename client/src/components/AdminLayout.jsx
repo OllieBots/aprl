@@ -1,6 +1,7 @@
-import { Outlet, NavLink, useLocation } from 'react-router-dom';
+import { Outlet, NavLink, useLocation, Navigate, Link } from 'react-router-dom';
 import { useEffect } from 'react';
 import useLeagueStore from '../store/useLeagueStore';
+import { useAuth } from '../context/AuthContext';
 
 const NAV_ITEMS = [
   { to: '/admin', label: 'Dashboard', icon: IconDashboard, exact: true },
@@ -18,11 +19,26 @@ const CONFIG_ITEMS = [
 
 export default function AdminLayout() {
   const { league, fetchLeague, fetchSeasons } = useLeagueStore();
+  const { user, ownedLeague, loading } = useAuth();
 
   useEffect(() => {
     fetchLeague();
     fetchSeasons();
   }, []);
+
+  if (loading) return null;
+
+  if (!user) return <Navigate to="/login" replace />;
+
+  if (!ownedLeague) {
+    return (
+      <div style={{ minHeight: '100vh', background: 'var(--bg)', display: 'flex', alignItems: 'center', justifyContent: 'center', flexDirection: 'column', gap: 16 }}>
+        <div style={{ fontSize: 18, fontWeight: 700, color: 'var(--text)' }}>No league found</div>
+        <p style={{ fontSize: 14, color: 'var(--text3)' }}>You need to create a league first.</p>
+        <Link to="/dashboard" style={{ fontSize: 14, color: 'var(--accent)', fontWeight: 600, textDecoration: 'none' }}>Go to Dashboard</Link>
+      </div>
+    );
+  }
 
   return (
     <div className="flex h-screen overflow-hidden" style={{ background: 'var(--bg)' }}>
@@ -65,7 +81,8 @@ export default function AdminLayout() {
         </nav>
 
         {/* Footer */}
-        <div className="px-5 py-4" style={{ borderTop: '1px solid var(--border)' }}>
+        <div className="px-5 py-4 space-y-2" style={{ borderTop: '1px solid var(--border)' }}>
+          <Link to="/dashboard" style={{ display: 'block', fontSize: 12, color: 'var(--text3)', textDecoration: 'none' }}>← Driver Dashboard</Link>
           <div className="text-xs" style={{ color: 'var(--text3)' }}>APRL v1.0</div>
         </div>
       </aside>
