@@ -9,6 +9,14 @@
     "install:all": "npm install && cd client && npm install && cd ../server && npm install",
     "build": "cd client && npm run build"
   },
+  "dependencies": {
+    "cors": "^2.8.6",
+    "discord.js": "^14.14.1",
+    "dotenv": "^16.6.1",
+    "express": "^4.22.1",
+    "node-cron": "^3.0.3",
+    "pg": "^8.20.0"
+  },
   "devDependencies": {
     "concurrently": "^8.2.2"
   }

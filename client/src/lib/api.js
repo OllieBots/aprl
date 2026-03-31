@@ -65,6 +65,8 @@ export const discord = {
   getLogs: () => api.get('/discord/logs'),
   getChannels: () => api.get('/discord/channels'),
   saveChannels: (data) => api.post('/discord/channels', data),
+  postStandings: (channel) => api.post('/discord/post-standings', { channel }),
+  inviteUrl: () => api.get('/discord/invite-url'),
 };
 
 export const activity = {
