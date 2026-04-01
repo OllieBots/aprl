@@ -27,6 +27,7 @@ app.use('/api/standings',require('./routes/standings'));
 app.use('/api/iracing',  require('./routes/iracing'));
 app.use('/api/discord',  require('./routes/discord'));
 app.use('/api/activity', require('./routes/activity'));
+app.use('/api/irt',      require('./routes/irt'));
 
 app.get('/api/health', (req, res) => {
   res.json({ status: 'ok', timestamp: new Date().toISOString() });

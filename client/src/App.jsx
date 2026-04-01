@@ -16,6 +16,7 @@ import Standings from './pages/admin/Standings';
 import IRacingConfig from './pages/admin/IRacingConfig';
 import DiscordConfig from './pages/admin/DiscordConfig';
 import Settings from './pages/admin/Settings';
+import IRT from './pages/admin/IRT';
 
 export default function App() {
   return (
@@ -37,6 +38,7 @@ export default function App() {
             <Route path="iracing" element={<IRacingConfig />} />
             <Route path="discord" element={<DiscordConfig />} />
             <Route path="settings" element={<Settings />} />
+            <Route path="irt" element={<IRT />} />
           </Route>
           <Route path="*" element={<Navigate to="/" replace />} />
         </Routes>
