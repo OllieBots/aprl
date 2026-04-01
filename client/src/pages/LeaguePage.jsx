@@ -124,79 +124,110 @@ export default function LeaguePage() {
         </div>
       </header>
 
-      {/* League header */}
-      <div style={{ background: 'var(--bg2)', borderBottom: '1px solid var(--border)', padding: '28px 32px' }}>
-        <div style={{ maxWidth: 960, margin: '0 auto' }}>
-          <div style={{ display: 'flex', alignItems: 'flex-start', justifyContent: 'space-between', gap: 20, flexWrap: 'wrap' }}>
-            <div style={{ display: 'flex', alignItems: 'center', gap: 16 }}>
-              <div style={{ width: 52, height: 52, borderRadius: 10, background: 'var(--accent)', display: 'flex', alignItems: 'center', justifyContent: 'center', color: '#fff', fontWeight: 900, fontSize: 24 }}>
-                {league?.name?.[0]}
-              </div>
-              <div>
-                <h1 style={{ fontSize: 22, fontWeight: 800, color: 'var(--text)', margin: '0 0 4px' }}>{league?.name}</h1>
-                <p style={{ fontSize: 13, color: 'var(--text3)', margin: 0 }}>{league?.season?.series || 'Racing League'} · {league?.season?.name || 'Active Season'}</p>
-              </div>
-            </div>
-            <div style={{ display: 'flex', alignItems: 'center', gap: 16 }}>
-              <div style={{ display: 'flex', gap: 20 }}>
-                {[
-                  { label: 'Drivers', value: league?.member_count ?? '—' },
-                  { label: 'Races Complete', value: league?.completed_races ?? 0 },
-                ].map(stat => (
-                  <div key={stat.label} style={{ textAlign: 'center' }}>
-                    <div style={{ fontSize: 20, fontWeight: 800, color: 'var(--text)' }}>{stat.value}</div>
-                    <div style={{ fontSize: 11, color: 'var(--text3)', fontWeight: 600, textTransform: 'uppercase', letterSpacing: '0.05em' }}>{stat.label}</div>
-                  </div>
-                ))}
-              </div>
-              {!isMember && !isPending && (
-                <button
-                  onClick={handleJoin}
-                  disabled={joining}
-                  style={{ padding: '9px 18px', borderRadius: 7, background: 'var(--accent)', color: '#fff', fontWeight: 700, fontSize: 13, border: 'none', cursor: 'pointer', opacity: joining ? 0.7 : 1 }}
-                >
-                  {joining ? 'Requesting...' : 'Request to Join'}
-                </button>
+      {/* League header — banner + info */}
+      {(() => {
+        const primary = league?.primary_color || 'var(--accent)';
+        const secondary = league?.secondary_color || 'var(--gold)';
+        const hasBanner = !!league?.banner_url;
+        return (
+          <>
+            {/* Banner */}
+            <div style={{ position: 'relative', height: hasBanner ? 200 : 0, overflow: 'hidden' }}>
+              {hasBanner && (
+                <>
+                  <img
+                    src={league.banner_url}
+                    alt="League banner"
+                    style={{ width: '100%', height: '100%', objectFit: 'cover', display: 'block' }}
+                  />
+                  {/* Gradient overlay so text below stays readable */}
+                  <div style={{ position: 'absolute', inset: 0, background: 'linear-gradient(to bottom, transparent 40%, var(--bg) 100%)' }} />
+                  {/* Color accent stripe at bottom */}
+                  <div style={{ position: 'absolute', bottom: 0, left: 0, right: 0, height: 4, background: `linear-gradient(90deg, ${primary}, ${secondary})` }} />
+                </>
               )}
-              {isPending && <span style={{ fontSize: 13, color: 'var(--text3)', fontWeight: 600 }}>Request pending</span>}
-              {isMember && <span style={{ fontSize: 13, color: 'var(--green)', fontWeight: 700 }}>✓ Member</span>}
             </div>
-          </div>
-          {joinMsg && <p style={{ marginTop: 10, fontSize: 13, color: 'var(--text2)' }}>{joinMsg}</p>}
-          {league?.description && <p style={{ marginTop: 12, fontSize: 14, color: 'var(--text2)', maxWidth: 600 }}>{league.description}</p>}
-        </div>
-      </div>
 
-      {/* Tab bar */}
-      <div style={{ background: 'var(--bg2)', borderBottom: '1px solid var(--border)' }}>
-        <div style={{ maxWidth: 960, margin: '0 auto', display: 'flex', padding: '0 32px', gap: 2 }}>
-          {TABS.filter(t => t !== 'Incidents' || isMember || user?.ownedLeague?.slug === slug).map(t => (
-            <button
-              key={t}
-              onClick={() => setTab(t)}
-              style={{
-                padding: '13px 18px', border: 'none', background: 'none', cursor: 'pointer',
-                fontSize: 13, fontWeight: 600,
-                color: tab === t ? 'var(--text)' : 'var(--text3)',
-                borderBottom: tab === t ? '2px solid var(--accent)' : '2px solid transparent',
-                marginBottom: -1,
-              }}
-            >
-              {t}
-            </button>
-          ))}
-          {isMember && tab === 'Incidents' && (
-            <div style={{ marginLeft: 'auto', display: 'flex', alignItems: 'center' }}>
-              <button
-                onClick={() => setIncidentModal(true)}
-                style={{ padding: '7px 14px', borderRadius: 6, background: 'var(--accent)', color: '#fff', fontWeight: 700, fontSize: 12, border: 'none', cursor: 'pointer' }}
-              >
-                + Submit Report
-              </button>
+            {/* Info bar */}
+            <div style={{ background: 'var(--bg2)', borderBottom: '1px solid var(--border)', padding: hasBanner ? '16px 32px 20px' : '28px 32px' }}>
+              {/* Color stripe when no banner */}
+              {!hasBanner && (
+                <div style={{ height: 3, background: `linear-gradient(90deg, ${primary}, ${secondary})`, borderRadius: 2, marginBottom: 20 }} />
+              )}
+              <div style={{ maxWidth: 960, margin: '0 auto' }}>
+                <div style={{ display: 'flex', alignItems: 'flex-start', justifyContent: 'space-between', gap: 20, flexWrap: 'wrap' }}>
+                  <div style={{ display: 'flex', alignItems: 'center', gap: 16 }}>
+                    <div style={{ width: 52, height: 52, borderRadius: 10, background: primary, display: 'flex', alignItems: 'center', justifyContent: 'center', color: '#fff', fontWeight: 900, fontSize: 24, flexShrink: 0, boxShadow: `0 0 0 3px ${primary}33` }}>
+                      {league?.name?.[0]}
+                    </div>
+                    <div>
+                      <h1 style={{ fontSize: 22, fontWeight: 800, color: 'var(--text)', margin: '0 0 4px' }}>{league?.name}</h1>
+                      <p style={{ fontSize: 13, color: 'var(--text3)', margin: 0 }}>{league?.season?.series || 'Racing League'} · {league?.season?.name || 'Active Season'}</p>
+                    </div>
+                  </div>
+                  <div style={{ display: 'flex', alignItems: 'center', gap: 16 }}>
+                    <div style={{ display: 'flex', gap: 20 }}>
+                      {[
+                        { label: 'Drivers', value: league?.member_count ?? '—' },
+                        { label: 'Races Complete', value: league?.completed_races ?? 0 },
+                      ].map(stat => (
+                        <div key={stat.label} style={{ textAlign: 'center' }}>
+                          <div style={{ fontSize: 20, fontWeight: 800, color: 'var(--text)' }}>{stat.value}</div>
+                          <div style={{ fontSize: 11, color: 'var(--text3)', fontWeight: 600, textTransform: 'uppercase', letterSpacing: '0.05em' }}>{stat.label}</div>
+                        </div>
+                      ))}
+                    </div>
+                    {!isMember && !isPending && (
+                      <button
+                        onClick={handleJoin}
+                        disabled={joining}
+                        style={{ padding: '9px 18px', borderRadius: 7, background: primary, color: '#fff', fontWeight: 700, fontSize: 13, border: 'none', cursor: 'pointer', opacity: joining ? 0.7 : 1 }}
+                      >
+                        {joining ? 'Requesting...' : 'Request to Join'}
+                      </button>
+                    )}
+                    {isPending && <span style={{ fontSize: 13, color: 'var(--text3)', fontWeight: 600 }}>Request pending</span>}
+                    {isMember && <span style={{ fontSize: 13, color: 'var(--green)', fontWeight: 700 }}>✓ Member</span>}
+                  </div>
+                </div>
+                {joinMsg && <p style={{ marginTop: 10, fontSize: 13, color: 'var(--text2)' }}>{joinMsg}</p>}
+                {league?.description && <p style={{ marginTop: 12, fontSize: 14, color: 'var(--text2)', maxWidth: 600 }}>{league.description}</p>}
+              </div>
             </div>
-          )}
-        </div>
-      </div>
+
+            {/* Tab bar */}
+            <div style={{ background: 'var(--bg2)', borderBottom: '1px solid var(--border)' }}>
+              <div style={{ maxWidth: 960, margin: '0 auto', display: 'flex', padding: '0 32px', gap: 2 }}>
+                {TABS.filter(t => t !== 'Incidents' || isMember || user?.ownedLeague?.slug === slug).map(t => (
+                  <button
+                    key={t}
+                    onClick={() => setTab(t)}
+                    style={{
+                      padding: '13px 18px', border: 'none', background: 'none', cursor: 'pointer',
+                      fontSize: 13, fontWeight: 600,
+                      color: tab === t ? 'var(--text)' : 'var(--text3)',
+                      borderBottom: tab === t ? `2px solid ${primary}` : '2px solid transparent',
+                      marginBottom: -1,
+                    }}
+                  >
+                    {t}
+                  </button>
+                ))}
+                {isMember && tab === 'Incidents' && (
+                  <div style={{ marginLeft: 'auto', display: 'flex', alignItems: 'center' }}>
+                    <button
+                      onClick={() => setIncidentModal(true)}
+                      style={{ padding: '7px 14px', borderRadius: 6, background: primary, color: '#fff', fontWeight: 700, fontSize: 12, border: 'none', cursor: 'pointer' }}
+                    >
+                      + Submit Report
+                    </button>
+                  </div>
+                )}
+              </div>
+            </div>
+          </>
+        );
+      })()}
 
       {/* Tab content */}
       <div style={{ maxWidth: 960, margin: '0 auto', padding: '28px 32px' }}>

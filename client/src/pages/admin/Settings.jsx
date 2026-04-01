@@ -13,7 +13,7 @@ const DEFAULT_SCORING = {
 };
 
 export default function Settings() {
-  const [leagueData, setLeagueData] = useState({ name: '', iracing_league_id: '', discord_guild_id: '' });
+  const [leagueData, setLeagueData] = useState({ name: '', iracing_league_id: '', discord_guild_id: '', primary_color: '#e8302a', secondary_color: '#f0b323', banner_url: '' });
   const [seasonData, setSeasonData] = useState(null);
   const [scoring, setScoring] = useState(DEFAULT_SCORING);
   const [savingLeague, setSavingLeague] = useState(false);
@@ -26,7 +26,14 @@ export default function Settings() {
   async function loadData() {
     try {
       const [l, s] = await Promise.all([league.get(), seasons.list()]);
-      if (l) setLeagueData({ name: l.name || '', iracing_league_id: l.iracing_league_id || '', discord_guild_id: l.discord_guild_id || '' });
+      if (l) setLeagueData({
+        name: l.name || '',
+        iracing_league_id: l.iracing_league_id || '',
+        discord_guild_id: l.discord_guild_id || '',
+        primary_color: l.primary_color || '#e8302a',
+        secondary_color: l.secondary_color || '#f0b323',
+        banner_url: l.banner_url || '',
+      });
       const active = s?.find(s => s.is_active) || s?.[0];
       if (active) {
         setSeasonData(active);
@@ -102,6 +109,97 @@ export default function Settings() {
                 </Button>
               </div>
             </form>
+          </div>
+        </Card>
+
+        {/* Appearance */}
+        <Card>
+          <CardHeader title="League Appearance" />
+          <div className="p-6 max-w-lg space-y-5">
+            {/* Color pickers */}
+            <div className="flex gap-8">
+              <div className="flex flex-col gap-2">
+                <label className="text-xs font-semibold uppercase tracking-wide" style={{ color: 'var(--text2)' }}>Primary Color</label>
+                <div className="flex items-center gap-3">
+                  <input
+                    type="color"
+                    value={leagueData.primary_color}
+                    onChange={e => setLeagueData(d => ({ ...d, primary_color: e.target.value }))}
+                    style={{ width: 44, height: 44, borderRadius: 8, border: '2px solid var(--border2)', cursor: 'pointer', padding: 2, background: 'var(--bg3)' }}
+                  />
+                  <input
+                    type="text"
+                    value={leagueData.primary_color}
+                    onChange={e => setLeagueData(d => ({ ...d, primary_color: e.target.value }))}
+                    maxLength={7}
+                    className="w-28 px-3 py-2 rounded-md text-sm font-mono"
+                    style={{ background: 'var(--bg3)', border: '1px solid var(--border2)', color: 'var(--text)' }}
+                  />
+                </div>
+              </div>
+              <div className="flex flex-col gap-2">
+                <label className="text-xs font-semibold uppercase tracking-wide" style={{ color: 'var(--text2)' }}>Secondary Color</label>
+                <div className="flex items-center gap-3">
+                  <input
+                    type="color"
+                    value={leagueData.secondary_color}
+                    onChange={e => setLeagueData(d => ({ ...d, secondary_color: e.target.value }))}
+                    style={{ width: 44, height: 44, borderRadius: 8, border: '2px solid var(--border2)', cursor: 'pointer', padding: 2, background: 'var(--bg3)' }}
+                  />
+                  <input
+                    type="text"
+                    value={leagueData.secondary_color}
+                    onChange={e => setLeagueData(d => ({ ...d, secondary_color: e.target.value }))}
+                    maxLength={7}
+                    className="w-28 px-3 py-2 rounded-md text-sm font-mono"
+                    style={{ background: 'var(--bg3)', border: '1px solid var(--border2)', color: 'var(--text)' }}
+                  />
+                </div>
+              </div>
+            </div>
+
+            {/* Preview swatch */}
+            <div className="rounded-md overflow-hidden" style={{ border: '1px solid var(--border)' }}>
+              <div style={{ height: 8, background: `linear-gradient(90deg, ${leagueData.primary_color}, ${leagueData.secondary_color})` }} />
+              <div style={{ padding: '10px 14px', background: 'var(--bg3)', display: 'flex', alignItems: 'center', gap: 10 }}>
+                <div style={{ width: 28, height: 28, borderRadius: 6, background: leagueData.primary_color, display: 'flex', alignItems: 'center', justifyContent: 'center', color: '#fff', fontWeight: 900, fontSize: 13 }}>
+                  {leagueData.name?.[0] || 'A'}
+                </div>
+                <span style={{ fontSize: 13, fontWeight: 700, color: 'var(--text)' }}>{leagueData.name || 'Your League'}</span>
+                <span style={{ marginLeft: 'auto', fontSize: 12, fontWeight: 700, padding: '3px 10px', borderRadius: 4, background: leagueData.secondary_color + '22', color: leagueData.secondary_color, border: `1px solid ${leagueData.secondary_color}44` }}>
+                  Preview
+                </span>
+              </div>
+            </div>
+
+            {/* Banner URL */}
+            <div>
+              <Input
+                label="Banner Image URL"
+                placeholder="https://i.imgur.com/yourimage.jpg"
+                value={leagueData.banner_url}
+                onChange={e => setLeagueData(d => ({ ...d, banner_url: e.target.value }))}
+              />
+              <p className="text-xs mt-1.5" style={{ color: 'var(--text3)' }}>
+                Paste a direct image URL (Imgur, Discord CDN, etc.). Recommended size: 1400×300px or wider.
+              </p>
+            </div>
+
+            {/* Banner preview */}
+            {leagueData.banner_url && (
+              <div className="rounded-md overflow-hidden" style={{ border: '1px solid var(--border)', height: 100 }}>
+                <img
+                  src={leagueData.banner_url}
+                  alt="Banner preview"
+                  style={{ width: '100%', height: '100%', objectFit: 'cover' }}
+                  onError={e => { e.target.style.display = 'none'; }}
+                />
+              </div>
+            )}
+
+            <Button onClick={handleLeagueSave} disabled={savingLeague}>
+              {savingLeague ? 'Saving...' : 'Save Appearance'}
+            </Button>
           </div>
         </Card>
 

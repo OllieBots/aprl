@@ -18,10 +18,10 @@ router.get('/', async (req, res) => {
 // PUT /api/league
 router.put('/', async (req, res) => {
   try {
-    const { name, iracing_league_id, discord_guild_id } = req.body;
+    const { name, iracing_league_id, discord_guild_id, primary_color, secondary_color, banner_url } = req.body;
     await db.run(
-      'UPDATE league SET name = ?, iracing_league_id = ?, discord_guild_id = ? WHERE id = ?',
-      name, iracing_league_id, discord_guild_id, req.leagueId
+      'UPDATE league SET name = ?, iracing_league_id = ?, discord_guild_id = ?, primary_color = ?, secondary_color = ?, banner_url = ? WHERE id = ?',
+      name, iracing_league_id, discord_guild_id, primary_color || null, secondary_color || null, banner_url || null, req.leagueId
     );
     await db.run("INSERT INTO activity_log (type, message) VALUES ('settings', 'League settings updated')");
     res.json({ success: true });

@@ -84,6 +84,11 @@ async function initDb() {
   // Unique car number per league (partial index ignores NULLs automatically)
   await pool.query(`CREATE UNIQUE INDEX IF NOT EXISTS uq_league_car_number ON league_memberships(league_id, car_number) WHERE car_number IS NOT NULL`);
 
+  // League appearance
+  await pool.query(`ALTER TABLE league ADD COLUMN IF NOT EXISTS primary_color TEXT`);
+  await pool.query(`ALTER TABLE league ADD COLUMN IF NOT EXISTS secondary_color TEXT`);
+  await pool.query(`ALTER TABLE league ADD COLUMN IF NOT EXISTS banner_url TEXT`);
+
   // IRT reviewer access + voting/discussion tables
   await pool.query(`ALTER TABLE league_memberships ADD COLUMN IF NOT EXISTS irt_reviewer BOOLEAN DEFAULT false`);
   await pool.query(`CREATE TABLE IF NOT EXISTS incident_votes (
