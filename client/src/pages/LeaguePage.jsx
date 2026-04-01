@@ -157,9 +157,17 @@ export default function LeaguePage() {
               <div style={{ maxWidth: 960, margin: '0 auto' }}>
                 <div style={{ display: 'flex', alignItems: 'flex-start', justifyContent: 'space-between', gap: 20, flexWrap: 'wrap' }}>
                   <div style={{ display: 'flex', alignItems: 'center', gap: 16 }}>
-                    <div style={{ width: 52, height: 52, borderRadius: 10, background: primary, display: 'flex', alignItems: 'center', justifyContent: 'center', color: '#fff', fontWeight: 900, fontSize: 24, flexShrink: 0, boxShadow: `0 0 0 3px ${primary}33` }}>
-                      {league?.name?.[0]}
-                    </div>
+                    {league?.logo_url ? (
+                      <img
+                        src={league.logo_url}
+                        alt={league.name}
+                        style={{ width: 52, height: 52, borderRadius: 10, objectFit: 'cover', flexShrink: 0, boxShadow: `0 0 0 3px ${primary}33` }}
+                      />
+                    ) : (
+                      <div style={{ width: 52, height: 52, borderRadius: 10, background: primary, display: 'flex', alignItems: 'center', justifyContent: 'center', color: '#fff', fontWeight: 900, fontSize: 24, flexShrink: 0, boxShadow: `0 0 0 3px ${primary}33` }}>
+                        {league?.name?.[0]}
+                      </div>
+                    )}
                     <div>
                       <h1 style={{ fontSize: 22, fontWeight: 800, color: 'var(--text)', margin: '0 0 4px' }}>{league?.name}</h1>
                       <p style={{ fontSize: 13, color: 'var(--text3)', margin: 0 }}>{league?.season?.series || 'Racing League'} · {league?.season?.name || 'Active Season'}</p>

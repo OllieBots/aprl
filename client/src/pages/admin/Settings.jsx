@@ -13,7 +13,7 @@ const DEFAULT_SCORING = {
 };
 
 export default function Settings() {
-  const [leagueData, setLeagueData] = useState({ name: '', iracing_league_id: '', discord_guild_id: '', primary_color: '#e8302a', secondary_color: '#f0b323', banner_url: '' });
+  const [leagueData, setLeagueData] = useState({ name: '', iracing_league_id: '', discord_guild_id: '', primary_color: '#e8302a', secondary_color: '#f0b323', banner_url: '', logo_url: '' });
   const [seasonData, setSeasonData] = useState(null);
   const [scoring, setScoring] = useState(DEFAULT_SCORING);
   const [savingLeague, setSavingLeague] = useState(false);
@@ -33,6 +33,7 @@ export default function Settings() {
         primary_color: l.primary_color || '#e8302a',
         secondary_color: l.secondary_color || '#f0b323',
         banner_url: l.banner_url || '',
+        logo_url: l.logo_url || '',
       });
       const active = s?.find(s => s.is_active) || s?.[0];
       if (active) {
@@ -45,12 +46,12 @@ export default function Settings() {
     } catch {}
   }
 
-  async function handleLeagueSave(e) {
-    e.preventDefault();
+  async function saveLeague(e) {
+    e?.preventDefault();
     setSavingLeague(true);
     try {
       await league.update(leagueData);
-      showMsg('League settings saved');
+      showMsg('Saved');
     } finally {
       setSavingLeague(false);
     }
@@ -90,7 +91,7 @@ export default function Settings() {
         <Card>
           <CardHeader title="League Configuration" />
           <div className="p-6 max-w-lg">
-            <form onSubmit={handleLeagueSave} className="space-y-4">
+            <form onSubmit={saveLeague} className="space-y-4">
               <Input
                 label="League Name"
                 value={leagueData.name}
@@ -158,13 +159,35 @@ export default function Settings() {
               </div>
             </div>
 
+            {/* Logo URL */}
+            <div>
+              <Input
+                label="Logo Image URL"
+                placeholder="https://i.imgur.com/yourlogo.png"
+                value={leagueData.logo_url}
+                onChange={e => setLeagueData(d => ({ ...d, logo_url: e.target.value }))}
+              />
+              <p className="text-xs mt-1.5" style={{ color: 'var(--text3)' }}>
+                Paste a direct image URL. Square image recommended (e.g. 256×256px). PNG with transparent background works great.
+              </p>
+            </div>
+
             {/* Preview swatch */}
             <div className="rounded-md overflow-hidden" style={{ border: '1px solid var(--border)' }}>
-              <div style={{ height: 8, background: `linear-gradient(90deg, ${leagueData.primary_color}, ${leagueData.secondary_color})` }} />
+              <div style={{ height: 6, background: `linear-gradient(90deg, ${leagueData.primary_color}, ${leagueData.secondary_color})` }} />
               <div style={{ padding: '10px 14px', background: 'var(--bg3)', display: 'flex', alignItems: 'center', gap: 10 }}>
-                <div style={{ width: 28, height: 28, borderRadius: 6, background: leagueData.primary_color, display: 'flex', alignItems: 'center', justifyContent: 'center', color: '#fff', fontWeight: 900, fontSize: 13 }}>
-                  {leagueData.name?.[0] || 'A'}
-                </div>
+                {leagueData.logo_url ? (
+                  <img
+                    src={leagueData.logo_url}
+                    alt="Logo"
+                    style={{ width: 32, height: 32, borderRadius: 7, objectFit: 'cover', border: `2px solid ${leagueData.primary_color}44` }}
+                    onError={e => { e.target.style.display = 'none'; }}
+                  />
+                ) : (
+                  <div style={{ width: 32, height: 32, borderRadius: 7, background: leagueData.primary_color, display: 'flex', alignItems: 'center', justifyContent: 'center', color: '#fff', fontWeight: 900, fontSize: 14 }}>
+                    {leagueData.name?.[0] || 'A'}
+                  </div>
+                )}
                 <span style={{ fontSize: 13, fontWeight: 700, color: 'var(--text)' }}>{leagueData.name || 'Your League'}</span>
                 <span style={{ marginLeft: 'auto', fontSize: 12, fontWeight: 700, padding: '3px 10px', borderRadius: 4, background: leagueData.secondary_color + '22', color: leagueData.secondary_color, border: `1px solid ${leagueData.secondary_color}44` }}>
                   Preview
@@ -197,7 +220,7 @@ export default function Settings() {
               </div>
             )}
 
-            <Button onClick={handleLeagueSave} disabled={savingLeague}>
+            <Button onClick={saveLeague} disabled={savingLeague}>
               {savingLeague ? 'Saving...' : 'Save Appearance'}
             </Button>
           </div>

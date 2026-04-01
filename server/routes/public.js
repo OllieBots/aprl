@@ -23,7 +23,7 @@ router.get('/leagues', async (req, res) => {
 // GET /api/public/leagues/:slug — league overview
 router.get('/leagues/:slug', async (req, res) => {
   try {
-    const league = await db.get('SELECT id, name, slug, description, primary_color, secondary_color, banner_url FROM league WHERE slug = ?', req.params.slug);
+    const league = await db.get('SELECT id, name, slug, description, primary_color, secondary_color, banner_url, logo_url FROM league WHERE slug = ?', req.params.slug);
     if (!league) return res.status(404).json({ error: 'League not found' });
 
     const season = await db.get('SELECT id, name, series, car_class FROM seasons WHERE league_id = ? AND is_active = 1 LIMIT 1', league.id);

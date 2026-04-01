@@ -88,6 +88,7 @@ async function initDb() {
   await pool.query(`ALTER TABLE league ADD COLUMN IF NOT EXISTS primary_color TEXT`);
   await pool.query(`ALTER TABLE league ADD COLUMN IF NOT EXISTS secondary_color TEXT`);
   await pool.query(`ALTER TABLE league ADD COLUMN IF NOT EXISTS banner_url TEXT`);
+  await pool.query(`ALTER TABLE league ADD COLUMN IF NOT EXISTS logo_url TEXT`);
 
   // IRT reviewer access + voting/discussion tables
   await pool.query(`ALTER TABLE league_memberships ADD COLUMN IF NOT EXISTS irt_reviewer BOOLEAN DEFAULT false`);
