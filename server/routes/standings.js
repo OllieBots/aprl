@@ -1,6 +1,9 @@
 const express = require('express');
 const router = express.Router();
 const db = require('../db/db');
+const adminLeague = require('../middleware/adminLeague');
+
+router.use(adminLeague);
 
 // GET /api/standings?season_id=x
 router.get('/', async (req, res) => {
@@ -9,7 +12,7 @@ router.get('/', async (req, res) => {
 
     let sid = season_id;
     if (!sid) {
-      const active = await db.get('SELECT id FROM seasons WHERE is_active = 1 LIMIT 1');
+      const active = await db.get('SELECT id FROM seasons WHERE league_id = ? AND is_active = 1 LIMIT 1', req.leagueId);
       sid = active?.id;
     }
 
@@ -41,13 +44,7 @@ router.get('/', async (req, res) => {
     `, sid);
 
     const leader_pts = standings[0]?.total_points ?? 0;
-    const result = standings.map((s, i) => ({
-      ...s,
-      position: i + 1,
-      gap: i === 0 ? 0 : leader_pts - s.total_points,
-    }));
-
-    res.json(result);
+    res.json(standings.map((s, i) => ({ ...s, position: i + 1, gap: i === 0 ? 0 : leader_pts - s.total_points })));
   } catch (err) {
     res.status(500).json({ error: err.message });
   }
@@ -60,7 +57,7 @@ router.get('/progression', async (req, res) => {
 
     let sid = season_id;
     if (!sid) {
-      const active = await db.get('SELECT id FROM seasons WHERE is_active = 1 LIMIT 1');
+      const active = await db.get('SELECT id FROM seasons WHERE league_id = ? AND is_active = 1 LIMIT 1', req.leagueId);
       sid = active?.id;
     }
 

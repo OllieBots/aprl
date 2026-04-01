@@ -2,6 +2,9 @@ const express = require('express');
 const router = express.Router();
 const db = require('../db/db');
 const iracingService = require('../services/iracing');
+const adminLeague = require('../middleware/adminLeague');
+
+router.use(adminLeague);
 
 // POST /api/iracing/connect
 router.post('/connect', async (req, res) => {
@@ -18,7 +21,7 @@ router.post('/connect', async (req, res) => {
 // GET /api/iracing/status
 router.get('/status', async (req, res) => {
   try {
-    const league = await db.get('SELECT iracing_session_cookie, iracing_cookie_expiry FROM league WHERE id = 1');
+    const league = await db.get('SELECT iracing_session_cookie, iracing_cookie_expiry FROM league WHERE id = ?', req.leagueId);
     const now = Math.floor(Date.now() / 1000);
     const connected = !!(league?.iracing_session_cookie && league?.iracing_cookie_expiry > now);
     const lastSync = await db.get("SELECT created_at FROM activity_log WHERE type = 'result' ORDER BY created_at DESC LIMIT 1");
@@ -51,7 +54,7 @@ router.post('/sync/:raceId', async (req, res) => {
 // GET /api/iracing/config
 router.get('/config', async (req, res) => {
   try {
-    const league = await db.get('SELECT iracing_cookie_expiry FROM league WHERE id = 1');
+    const league = await db.get('SELECT iracing_cookie_expiry FROM league WHERE id = ?', req.leagueId);
     res.json({
       auto_sync: true,
       sync_delay_minutes: 15,

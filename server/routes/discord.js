@@ -1,12 +1,15 @@
 const express = require('express');
 const router = express.Router();
 const db = require('../db/db');
+const adminLeague = require('../middleware/adminLeague');
+
+router.use(adminLeague);
 
 // POST /api/discord/config
 router.post('/config', async (req, res) => {
   try {
     const { guild_id } = req.body;
-    await db.run('UPDATE league SET discord_guild_id = ? WHERE id = 1', guild_id);
+    await db.run('UPDATE league SET discord_guild_id = ? WHERE id = ?', guild_id, req.leagueId);
     await db.run("INSERT INTO activity_log (type, message) VALUES ('discord', 'Discord server ID updated')");
     res.json({ success: true });
   } catch (err) {
@@ -26,7 +29,7 @@ router.get('/invite-url', (req, res) => {
 // GET /api/discord/status
 router.get('/status', async (req, res) => {
   try {
-    const league = await db.get('SELECT discord_guild_id FROM league WHERE id = 1');
+    const league = await db.get('SELECT discord_guild_id FROM league WHERE id = ?', req.leagueId);
     res.json({
       online: !!(process.env.DISCORD_BOT_TOKEN),
       guild_id: league?.discord_guild_id || null,

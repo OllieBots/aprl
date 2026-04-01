@@ -1,16 +1,19 @@
 const express = require('express');
 const router = express.Router();
 const db = require('../db/db');
+const adminLeague = require('../middleware/adminLeague');
+
+router.use(adminLeague);
 
 // GET /api/races
 router.get('/', async (req, res) => {
   try {
     const { season_id, status } = req.query;
-    let query = 'SELECT * FROM races WHERE 1=1';
-    const params = [];
-    if (season_id) { query += ' AND season_id = ?'; params.push(season_id); }
-    if (status)    { query += ' AND status = ?';    params.push(status); }
-    query += ' ORDER BY round_number ASC';
+    let query = 'SELECT r.* FROM races r JOIN seasons s ON r.season_id = s.id WHERE s.league_id = ?';
+    const params = [req.leagueId];
+    if (season_id) { query += ' AND r.season_id = ?'; params.push(season_id); }
+    if (status)    { query += ' AND r.status = ?';    params.push(status); }
+    query += ' ORDER BY r.round_number ASC';
     const races = await db.all(query, ...params);
     res.json(races);
   } catch (err) {
