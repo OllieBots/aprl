@@ -72,3 +72,18 @@ export const discord = {
 export const activity = {
   list: (params) => api.get('/activity', { params }),
 };
+
+export const members = {
+  list: (leagueId) => api.get(`/members/${leagueId}`),
+  invite: (leagueId, iracing_cust_id) => api.post(`/members/${leagueId}/invite`, { iracing_cust_id }),
+  update: (leagueId, membershipId, data) => api.put(`/members/${leagueId}/${membershipId}`, data),
+  remove: (leagueId, membershipId) => api.delete(`/members/${leagueId}/${membershipId}`),
+  getCarNumbers: (leagueId) => api.get(`/members/${leagueId}/car-numbers`),
+};
+
+export const userApi = {
+  dashboard: () => api.get('/user/dashboard'),
+  acceptInvite: (id, data) => api.post(`/user/invites/${id}/accept`, data),
+  declineInvite: (id) => api.post(`/user/invites/${id}/decline`),
+  getInviteCarNumbers: (id) => api.get(`/user/invites/${id}/car-numbers`),
+};

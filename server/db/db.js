@@ -75,6 +75,15 @@ async function initDb() {
   await pool.query(`ALTER TABLE league ADD COLUMN IF NOT EXISTS owner_user_id INTEGER REFERENCES users(id)`);
   await pool.query(`ALTER TABLE drivers ADD COLUMN IF NOT EXISTS user_id INTEGER REFERENCES users(id)`);
 
+  // Migrate league_memberships with per-league driver profile fields
+  await pool.query(`ALTER TABLE league_memberships ADD COLUMN IF NOT EXISTS invited_iracing_cust_id INTEGER`);
+  await pool.query(`ALTER TABLE league_memberships ADD COLUMN IF NOT EXISTS display_name TEXT`);
+  await pool.query(`ALTER TABLE league_memberships ADD COLUMN IF NOT EXISTS car_number TEXT`);
+  await pool.query(`ALTER TABLE league_memberships ADD COLUMN IF NOT EXISTS car_model TEXT`);
+  await pool.query(`ALTER TABLE league_memberships ADD COLUMN IF NOT EXISTS team_name TEXT`);
+  // Unique car number per league (partial index ignores NULLs automatically)
+  await pool.query(`CREATE UNIQUE INDEX IF NOT EXISTS uq_league_car_number ON league_memberships(league_id, car_number) WHERE car_number IS NOT NULL`);
+
   // Give league.id an auto-increment sequence (it was originally a single hardcoded row)
   await pool.query(`CREATE SEQUENCE IF NOT EXISTS league_id_seq`);
   await pool.query(`SELECT setval('league_id_seq', COALESCE((SELECT MAX(id) FROM league), 1))`);

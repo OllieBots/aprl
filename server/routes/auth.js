@@ -47,6 +47,12 @@ router.post('/signup', async (req, res) => {
       result.lastInsertRowid, iracing_cust_id
     );
 
+    // Auto-link any pre-signup invites that were waiting for this iRacing ID
+    await db.run(
+      'UPDATE league_memberships SET user_id = ? WHERE invited_iracing_cust_id = ? AND user_id IS NULL',
+      result.lastInsertRowid, iracing_cust_id
+    );
+
     const user = await db.get('SELECT id, email, name, iracing_cust_id, iracing_verified FROM users WHERE id = ?', result.lastInsertRowid);
     res.json({ token: makeToken({ ...user, owned_league_id: null }), user, iracing_verified });
   } catch (err) {

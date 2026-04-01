@@ -1,7 +1,7 @@
 import { useState, useEffect } from 'react';
 import { Link, useNavigate } from 'react-router-dom';
 import { useAuth } from '../context/AuthContext';
-import api from '../lib/api';
+import api, { userApi } from '../lib/api';
 import Modal from '../components/Modal';
 import Input from '../components/Input';
 import Button from '../components/Button';
@@ -12,6 +12,7 @@ export default function DriverDashboard() {
   const [data, setData] = useState(null);
   const [loading, setLoading] = useState(true);
   const [createModal, setCreateModal] = useState(false);
+  const [acceptingInvite, setAcceptingInvite] = useState(null); // { id, league_name }
 
   useEffect(() => { loadDashboard(); }, []);
 
@@ -26,13 +27,8 @@ export default function DriverDashboard() {
     }
   }
 
-  async function handleAcceptInvite(inviteId) {
-    await api.post(`/user/invites/${inviteId}/accept`);
-    loadDashboard();
-  }
-
   async function handleDeclineInvite(inviteId) {
-    await api.post(`/user/invites/${inviteId}/decline`);
+    await userApi.declineInvite(inviteId);
     loadDashboard();
   }
 
@@ -112,7 +108,7 @@ export default function DriverDashboard() {
                   </div>
                   <div style={{ display: 'flex', gap: 8 }}>
                     <button
-                      onClick={() => handleAcceptInvite(invite.id)}
+                      onClick={() => setAcceptingInvite(invite)}
                       style={{ padding: '6px 14px', borderRadius: 6, background: 'var(--accent)', color: '#fff', fontWeight: 600, fontSize: 13, border: 'none', cursor: 'pointer' }}
                     >Accept</button>
                     <button
@@ -233,7 +229,167 @@ export default function DriverDashboard() {
           }}
         />
       )}
+
+      {acceptingInvite && (
+        <AcceptInviteModal
+          invite={acceptingInvite}
+          onClose={() => setAcceptingInvite(null)}
+          onAccepted={() => {
+            setAcceptingInvite(null);
+            loadDashboard();
+          }}
+        />
+      )}
     </div>
+  );
+}
+
+const GT3_CARS = [
+  'BMW M4 GT3',
+  'Porsche 911 GT3 R',
+  'Ferrari 296 GT3',
+  'Mercedes-AMG GT3',
+  'Audi R8 LMS GT3 Evo II',
+  'Lamborghini Huracan GT3 EVO',
+  'McLaren 720S GT3 EVO',
+  'Ford Mustang GT3',
+  'Chevrolet Corvette Z06 GT3.R',
+  'Lexus RC F GT3',
+];
+
+function CarNumberPicker({ taken, value, onChange }) {
+  const numbers = Array.from({ length: 99 }, (_, i) => String(i + 1));
+  return (
+    <div>
+      <label style={{ fontSize: 12, fontWeight: 600, textTransform: 'uppercase', letterSpacing: '0.05em', color: 'var(--text2)', display: 'block', marginBottom: 8 }}>
+        Car Number
+      </label>
+      <div style={{ display: 'grid', gridTemplateColumns: 'repeat(11, 1fr)', gap: 4 }}>
+        {numbers.map(n => {
+          const isTaken = taken.includes(n);
+          const isSelected = value === n;
+          return (
+            <button
+              key={n}
+              type="button"
+              disabled={isTaken}
+              onClick={() => onChange(isSelected ? '' : n)}
+              style={{
+                padding: '5px 2px',
+                borderRadius: 5,
+                fontSize: 11,
+                fontWeight: 700,
+                textAlign: 'center',
+                cursor: isTaken ? 'not-allowed' : 'pointer',
+                border: isSelected ? '2px solid var(--accent)' : '1px solid var(--border2)',
+                background: isSelected ? 'var(--accent)' : isTaken ? 'var(--bg2)' : 'var(--bg3)',
+                color: isSelected ? '#fff' : isTaken ? 'var(--border2)' : 'var(--text2)',
+                opacity: isTaken ? 0.4 : 1,
+              }}
+            >
+              {n}
+            </button>
+          );
+        })}
+      </div>
+      {value && (
+        <p style={{ fontSize: 12, color: 'var(--accent)', fontWeight: 600, marginTop: 6 }}>
+          Selected: #{value}
+        </p>
+      )}
+    </div>
+  );
+}
+
+function AcceptInviteModal({ invite, onClose, onAccepted }) {
+  const { user } = useAuth();
+  const [form, setForm] = useState({
+    display_name: user?.name || '',
+    car_number: '',
+    car_model: '',
+    team_name: '',
+  });
+  const [takenNumbers, setTakenNumbers] = useState([]);
+  const [error, setError] = useState('');
+  const [saving, setSaving] = useState(false);
+
+  useEffect(() => {
+    userApi.getInviteCarNumbers(invite.id)
+      .then(setTakenNumbers)
+      .catch(() => {});
+  }, [invite.id]);
+
+  async function handleSubmit(e) {
+    e.preventDefault();
+    if (!form.car_number) { setError('Please choose a car number'); return; }
+    if (!form.car_model) { setError('Please enter a car model'); return; }
+    setError('');
+    setSaving(true);
+    try {
+      await userApi.acceptInvite(invite.id, form);
+      onAccepted();
+    } catch (err) {
+      setError(err.message);
+    } finally {
+      setSaving(false);
+    }
+  }
+
+  return (
+    <Modal title={`Join ${invite.league_name}`} onClose={onClose} width={560}>
+      <form onSubmit={handleSubmit} className="space-y-5">
+        <p style={{ fontSize: 13, color: 'var(--text3)', margin: 0 }}>
+          Set up your driver profile for this league. Your car number is unique within the league.
+        </p>
+
+        <Input
+          label="Display Name"
+          placeholder="How you'll appear in standings"
+          value={form.display_name}
+          onChange={e => setForm(f => ({ ...f, display_name: e.target.value }))}
+        />
+
+        <CarNumberPicker
+          taken={takenNumbers}
+          value={form.car_number}
+          onChange={n => setForm(f => ({ ...f, car_number: n }))}
+        />
+
+        <div>
+          <label style={{ fontSize: 12, fontWeight: 600, textTransform: 'uppercase', letterSpacing: '0.05em', color: 'var(--text2)', display: 'block', marginBottom: 6 }}>
+            Car Model
+          </label>
+          <input
+            list="car-models"
+            placeholder="e.g. BMW M4 GT3"
+            value={form.car_model}
+            onChange={e => setForm(f => ({ ...f, car_model: e.target.value }))}
+            style={{ width: '100%', padding: '8px 12px', borderRadius: 6, fontSize: 14, background: 'var(--bg3)', border: '1px solid var(--border2)', color: 'var(--text)', outline: 'none' }}
+          />
+          <datalist id="car-models">
+            {GT3_CARS.map(c => <option key={c} value={c} />)}
+          </datalist>
+        </div>
+
+        <Input
+          label="Team Name (optional)"
+          placeholder="e.g. Apex Motorsport"
+          value={form.team_name}
+          onChange={e => setForm(f => ({ ...f, team_name: e.target.value }))}
+        />
+
+        {error && (
+          <div style={{ padding: '10px 14px', borderRadius: 6, background: 'rgba(232,48,42,0.1)', color: 'var(--accent)', border: '1px solid rgba(232,48,42,0.25)', fontSize: 13 }}>
+            {error}
+          </div>
+        )}
+
+        <div className="flex justify-end gap-3 pt-1">
+          <Button variant="secondary" type="button" onClick={onClose}>Cancel</Button>
+          <Button type="submit" disabled={saving}>{saving ? 'Joining...' : 'Join League'}</Button>
+        </div>
+      </form>
+    </Modal>
   );
 }
 

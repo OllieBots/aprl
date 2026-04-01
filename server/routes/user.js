@@ -150,6 +150,25 @@ router.post('/leagues/:slug/join', requireAuth, async (req, res) => {
   }
 });
 
+// GET /api/user/invites/:id/car-numbers — taken car numbers in the league for this invite
+router.get('/invites/:id/car-numbers', requireAuth, async (req, res) => {
+  try {
+    const membership = await db.get(
+      'SELECT league_id FROM league_memberships WHERE id = ? AND user_id = ? AND status = ?',
+      req.params.id, req.user.id, 'invited'
+    );
+    if (!membership) return res.status(404).json({ error: 'Invite not found' });
+
+    const taken = await db.all(
+      'SELECT car_number FROM league_memberships WHERE league_id = ? AND car_number IS NOT NULL',
+      membership.league_id
+    );
+    res.json(taken.map(r => r.car_number));
+  } catch (err) {
+    res.status(500).json({ error: err.message });
+  }
+});
+
 // POST /api/user/invites/:id/accept
 router.post('/invites/:id/accept', requireAuth, async (req, res) => {
   try {
@@ -159,16 +178,30 @@ router.post('/invites/:id/accept', requireAuth, async (req, res) => {
     );
     if (!membership) return res.status(404).json({ error: 'Invite not found' });
 
-    await db.run('UPDATE league_memberships SET status = ? WHERE id = ?', 'active', req.params.id);
+    const { display_name, car_number, car_model, team_name } = req.body;
 
-    // Create driver record if needed
+    await db.run(
+      `UPDATE league_memberships
+       SET status = 'active', display_name = ?, car_number = ?, car_model = ?, team_name = ?
+       WHERE id = ?`,
+      display_name || null, car_number || null, car_model || null, team_name || null, req.params.id
+    );
+
+    // Create or update driver record
     const existing = await db.get('SELECT id FROM drivers WHERE user_id = ?', req.user.id);
     if (!existing) {
       await db.run(
-        'INSERT INTO drivers (user_id, iracing_cust_id, name, status) VALUES (?, ?, ?, ?)',
-        req.user.id, req.user.iracing_cust_id || null, req.user.name, 'active'
+        'INSERT INTO drivers (user_id, iracing_cust_id, name, car_number, car_model, status) VALUES (?, ?, ?, ?, ?, ?)',
+        req.user.id, req.user.iracing_cust_id || null,
+        display_name || req.user.name, car_number || null, car_model || null, 'active'
+      );
+    } else if (car_number || car_model) {
+      await db.run(
+        'UPDATE drivers SET car_number = COALESCE(?, car_number), car_model = COALESCE(?, car_model) WHERE id = ?',
+        car_number || null, car_model || null, existing.id
       );
     }
+
     res.json({ success: true });
   } catch (err) {
     res.status(500).json({ error: err.message });

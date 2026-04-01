@@ -9,15 +9,17 @@ async function requireOwner(req, res, leagueId) {
   return true;
 }
 
-// GET /api/members/:leagueId — list all memberships
+// GET /api/members/:leagueId — list all memberships (includes pre-signup invites)
 router.get('/:leagueId', requireAuth, async (req, res) => {
   try {
     if (!await requireOwner(req, res, req.params.leagueId)) return;
     const members = await db.all(`
       SELECT lm.id, lm.status, lm.role, lm.created_at,
+        lm.display_name, lm.car_number, lm.car_model, lm.team_name,
+        lm.invited_iracing_cust_id,
         u.id as user_id, u.name, u.email, u.iracing_cust_id, u.iracing_verified
       FROM league_memberships lm
-      JOIN users u ON lm.user_id = u.id
+      LEFT JOIN users u ON lm.user_id = u.id
       WHERE lm.league_id = ?
       ORDER BY lm.created_at ASC
     `, req.params.leagueId);
@@ -27,25 +29,57 @@ router.get('/:leagueId', requireAuth, async (req, res) => {
   }
 });
 
-// POST /api/members/:leagueId/invite — invite by email
+// GET /api/members/:leagueId/car-numbers — taken car numbers in this league
+router.get('/:leagueId/car-numbers', requireAuth, async (req, res) => {
+  try {
+    if (!await requireOwner(req, res, req.params.leagueId)) return;
+    const taken = await db.all(
+      'SELECT car_number FROM league_memberships WHERE league_id = ? AND car_number IS NOT NULL',
+      req.params.leagueId
+    );
+    res.json(taken.map(r => r.car_number));
+  } catch (err) {
+    res.status(500).json({ error: err.message });
+  }
+});
+
+// POST /api/members/:leagueId/invite — invite by iRacing Customer ID
 router.post('/:leagueId/invite', requireAuth, async (req, res) => {
   try {
     if (!await requireOwner(req, res, req.params.leagueId)) return;
-    const { email } = req.body;
+    const { iracing_cust_id } = req.body;
+    if (!iracing_cust_id) return res.status(400).json({ error: 'iRacing Customer ID is required' });
 
-    const user = await db.get('SELECT id FROM users WHERE email = ?', email?.toLowerCase());
-    if (!user) return res.status(404).json({ error: 'No account found with that email. Ask them to sign up first.' });
+    const user = await db.get('SELECT id FROM users WHERE iracing_cust_id = ?', iracing_cust_id);
 
-    const existing = await db.get(
-      'SELECT id, status FROM league_memberships WHERE user_id = ? AND league_id = ?',
-      user.id, req.params.leagueId
-    );
-    if (existing) return res.status(400).json({ error: `This user is already ${existing.status === 'active' ? 'a member' : 'pending'}` });
+    if (user) {
+      // User already has an APRL account — link invite directly
+      const existing = await db.get(
+        'SELECT id, status FROM league_memberships WHERE user_id = ? AND league_id = ?',
+        user.id, req.params.leagueId
+      );
+      if (existing) {
+        const label = existing.status === 'active' ? 'already a member' : existing.status;
+        return res.status(400).json({ error: `This driver is ${label} in this league` });
+      }
+      await db.insert(
+        'INSERT INTO league_memberships (user_id, league_id, status, role) VALUES (?, ?, ?, ?)',
+        user.id, req.params.leagueId, 'invited', 'driver'
+      );
+    } else {
+      // No account yet — pre-signup invite
+      const existing = await db.get(
+        'SELECT id FROM league_memberships WHERE invited_iracing_cust_id = ? AND league_id = ?',
+        iracing_cust_id, req.params.leagueId
+      );
+      if (existing) return res.status(400).json({ error: 'An invite has already been sent to this iRacing ID' });
 
-    await db.run(
-      'INSERT INTO league_memberships (user_id, league_id, status, role) VALUES (?, ?, ?, ?)',
-      user.id, req.params.leagueId, 'invited', 'driver'
-    );
+      await db.insert(
+        'INSERT INTO league_memberships (invited_iracing_cust_id, league_id, status, role) VALUES (?, ?, ?, ?)',
+        iracing_cust_id, req.params.leagueId, 'invited', 'driver'
+      );
+    }
+
     res.json({ success: true });
   } catch (err) {
     res.status(500).json({ error: err.message });
@@ -69,8 +103,8 @@ router.put('/:leagueId/:membershipId', requireAuth, async (req, res) => {
       status || membership.status, role || membership.role, req.params.membershipId
     );
 
-    // If approving, ensure driver record exists
-    if (status === 'active' && membership.status !== 'active') {
+    // If approving and user account exists, ensure driver record is present
+    if (status === 'active' && membership.status !== 'active' && membership.user_id) {
       const user = await db.get('SELECT * FROM users WHERE id = ?', membership.user_id);
       const existing = await db.get('SELECT id FROM drivers WHERE user_id = ?', user.id);
       if (!existing) {
