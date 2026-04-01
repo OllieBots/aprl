@@ -75,6 +75,11 @@ async function initDb() {
   await pool.query(`ALTER TABLE league ADD COLUMN IF NOT EXISTS owner_user_id INTEGER REFERENCES users(id)`);
   await pool.query(`ALTER TABLE drivers ADD COLUMN IF NOT EXISTS user_id INTEGER REFERENCES users(id)`);
 
+  // Give league.id an auto-increment sequence (it was originally a single hardcoded row)
+  await pool.query(`CREATE SEQUENCE IF NOT EXISTS league_id_seq`);
+  await pool.query(`SELECT setval('league_id_seq', COALESCE((SELECT MAX(id) FROM league), 1))`);
+  await pool.query(`ALTER TABLE league ALTER COLUMN id SET DEFAULT nextval('league_id_seq')`);
+
   // Seed default league row
   const league = await db.get('SELECT id FROM league WHERE id = 1');
   if (!league) {
