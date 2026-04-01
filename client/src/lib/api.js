@@ -56,6 +56,7 @@ export const iracing = {
   sync: (raceId) => api.post(`/iracing/sync/${raceId}`),
   getConfig: () => api.get('/iracing/config'),
   updateConfig: (data) => api.put('/iracing/config', data),
+  importSchedule: (data) => api.post('/iracing/import-schedule', data),
 };
 
 export const discord = {

@@ -257,22 +257,50 @@ function ScheduleTab({ schedule }) {
       {schedule.map(race => {
         const isPast = race.scheduled_at < now;
         return (
-          <div key={race.id} style={{ background: 'var(--bg2)', border: '1px solid var(--border)', borderRadius: 8, padding: '14px 20px', display: 'flex', alignItems: 'center', gap: 16, opacity: isPast ? 0.6 : 1 }}>
-            <span style={{ fontWeight: 800, color: 'var(--accent)', fontSize: 16, minWidth: 36 }}>R{race.round_number}</span>
-            <div style={{ flex: 1 }}>
-              <span style={{ fontWeight: 600, fontSize: 14, color: 'var(--text)' }}>{race.track_name}</span>
-              {race.track_config && <span style={{ fontSize: 13, color: 'var(--text3)', marginLeft: 6 }}>— {race.track_config}</span>}
+          <div key={race.id} style={{ background: 'var(--bg2)', border: '1px solid var(--border)', borderRadius: 8, padding: '14px 20px', opacity: isPast ? 0.6 : 1 }}>
+            <div style={{ display: 'flex', alignItems: 'center', gap: 16 }}>
+              <span style={{ fontWeight: 800, color: 'var(--accent)', fontSize: 16, minWidth: 36 }}>R{race.round_number}</span>
+              <div style={{ flex: 1 }}>
+                <span style={{ fontWeight: 600, fontSize: 14, color: 'var(--text)' }}>{race.track_name}</span>
+                {race.track_config && <span style={{ fontSize: 13, color: 'var(--text3)', marginLeft: 6 }}>— {race.track_config}</span>}
+                {race.session_name && <div style={{ fontSize: 11, color: 'var(--text3)', marginTop: 2 }}>{race.session_name}</div>}
+              </div>
+              <span style={{ fontSize: 13, color: 'var(--text2)' }}>{race.laps ? `${race.laps} laps` : '—'}</span>
+              <span style={{ fontSize: 13, color: 'var(--text2)' }}>{new Date(race.scheduled_at * 1000).toUTCString()}</span>
+              <span style={{
+                fontSize: 11, fontWeight: 700, padding: '3px 8px', borderRadius: 4,
+                background: race.status === 'completed' ? 'rgba(34,197,94,0.1)' : 'rgba(59,130,246,0.1)',
+                color: race.status === 'completed' ? 'var(--green)' : '#60a5fa',
+                textTransform: 'uppercase', letterSpacing: '0.05em',
+              }}>
+                {race.status}
+              </span>
             </div>
-            <span style={{ fontSize: 13, color: 'var(--text2)' }}>{race.laps ? `${race.laps} laps` : '—'}</span>
-            <span style={{ fontSize: 13, color: 'var(--text2)' }}>{new Date(race.scheduled_at * 1000).toUTCString()}</span>
-            <span style={{
-              fontSize: 11, fontWeight: 700, padding: '3px 8px', borderRadius: 4,
-              background: race.status === 'completed' ? 'rgba(34,197,94,0.1)' : 'rgba(59,130,246,0.1)',
-              color: race.status === 'completed' ? 'var(--green)' : '#60a5fa',
-              textTransform: 'uppercase', letterSpacing: '0.05em',
-            }}>
-              {race.status}
-            </span>
+            {(race.weather_temp != null || race.weather_sky != null || race.time_of_day != null) && (
+              <div style={{ display: 'flex', gap: 18, marginTop: 10, paddingTop: 10, borderTop: '1px solid var(--border)', flexWrap: 'wrap' }}>
+                {race.weather_sky != null && (
+                  <span style={{ fontSize: 12, color: 'var(--text3)' }}>
+                    {['☀️','🌤️','⛅','🌥️','☁️'][race.weather_sky]} {['Clear','Mostly Clear','Partly Cloudy','Mostly Cloudy','Overcast'][race.weather_sky]}
+                  </span>
+                )}
+                {race.weather_temp != null && (
+                  <span style={{ fontSize: 12, color: 'var(--text3)' }}>
+                    🌡️ {Math.round(race.weather_temp)}{race.weather_temp_units === 1 ? '°C' : '°F'}
+                    {race.weather_humidity != null && ` · ${race.weather_humidity}% humidity`}
+                  </span>
+                )}
+                {race.weather_wind_speed != null && race.weather_wind_speed > 0 && (
+                  <span style={{ fontSize: 12, color: 'var(--text3)' }}>
+                    💨 {Math.round(race.weather_wind_speed)}{race.weather_wind_units === 1 ? ' kph' : ' mph'}
+                  </span>
+                )}
+                {race.time_of_day != null && (
+                  <span style={{ fontSize: 12, color: 'var(--text3)' }}>
+                    {['🌅','☀️','🌄','🌇','🌙','🌄'][race.time_of_day]} {['Morning','Noon','Afternoon','Dusk','Midnight','Dawn'][race.time_of_day]} (sim time)
+                  </span>
+                )}
+              </div>
+            )}
           </div>
         );
       })}

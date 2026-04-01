@@ -67,6 +67,26 @@ router.get('/config', async (req, res) => {
   }
 });
 
+// POST /api/iracing/import-schedule
+router.post('/import-schedule', async (req, res) => {
+  const { season_id, iracing_league_id, iracing_season_id } = req.body;
+  if (!iracing_league_id || !iracing_season_id) {
+    return res.status(400).json({ error: 'iRacing League ID and Season ID are required' });
+  }
+  try {
+    const result = await iracingService.importLeagueSchedule(
+      season_id || (await db.get('SELECT id FROM seasons WHERE league_id = ? AND is_active = 1 LIMIT 1', req.leagueId))?.id,
+      iracing_league_id,
+      iracing_season_id
+    );
+    await db.run("INSERT INTO activity_log (type, message) VALUES ('settings', ?)",
+      `Schedule imported from iRacing: ${result.imported} races added/updated`);
+    res.json({ success: true, ...result });
+  } catch (err) {
+    res.status(500).json({ error: err.message });
+  }
+});
+
 // PUT /api/iracing/config
 router.put('/config', async (req, res) => {
   res.json({ success: true });

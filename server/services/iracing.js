@@ -165,4 +165,89 @@ async function applyPoints(raceId, scoring) {
   }
 }
 
-module.exports = { authenticate, fetchFromIRacing, importRaceResults };
+// Import upcoming sessions from an iRacing league season into the APRL schedule
+async function importLeagueSchedule(aprlSeasonId, iracingLeagueId, iracingSeasonId) {
+  const data = await fetchFromIRacing(
+    `league/season/sessions?league_id=${iracingLeagueId}&season_id=${iracingSeasonId}&results_only=false`
+  );
+
+  const sessions = data.sessions || [];
+  if (!sessions.length) throw new Error('No sessions found for that iRacing league/season');
+
+  // Save the iRacing IDs on the league and season for future use
+  await db.run('UPDATE league SET iracing_league_id = ? WHERE id = 1', iracingLeagueId);
+  await db.run('UPDATE seasons SET iracing_season_id = ? WHERE id = ?', iracingSeasonId, aprlSeasonId);
+
+  let imported = 0;
+  let skipped = 0;
+
+  for (let i = 0; i < sessions.length; i++) {
+    const s = sessions[i];
+    const track = s.track || {};
+    const weather = s.weather || {};
+
+    // Convert iRacing's launch_at ISO string to unix timestamp
+    const scheduledAt = s.launch_at ? Math.floor(new Date(s.launch_at).getTime() / 1000) : null;
+
+    // Don't overwrite completed races
+    if (s.subsession_id || s.has_results) {
+      skipped++;
+      continue;
+    }
+
+    // Check if this session already exists by iracing_league_session_id
+    const existing = s.league_session_id
+      ? await db.get('SELECT id, status FROM races WHERE iracing_league_session_id = ?', s.league_session_id)
+      : null;
+
+    const raceData = {
+      track_name: track.track_name || 'TBD',
+      track_config: track.config_name || null,
+      scheduled_at: scheduledAt,
+      laps: s.race_laps || s.laps || null,
+      session_name: s.session_name || null,
+      iracing_league_session_id: s.league_session_id || null,
+      weather_temp: weather.temp_value ?? null,
+      weather_temp_units: weather.temp_units ?? null,
+      weather_humidity: weather.rel_humidity ?? null,
+      weather_wind_speed: weather.wind_value ?? null,
+      weather_wind_units: weather.wind_units ?? null,
+      weather_sky: weather.skies ?? null,
+      time_of_day: s.time_of_day ?? null,
+    };
+
+    if (existing) {
+      if (existing.status === 'completed') { skipped++; continue; }
+      await db.run(`
+        UPDATE races SET
+          track_name = ?, track_config = ?, scheduled_at = ?, laps = ?, session_name = ?,
+          weather_temp = ?, weather_temp_units = ?, weather_humidity = ?,
+          weather_wind_speed = ?, weather_wind_units = ?, weather_sky = ?, time_of_day = ?
+        WHERE id = ?`,
+        raceData.track_name, raceData.track_config, raceData.scheduled_at, raceData.laps, raceData.session_name,
+        raceData.weather_temp, raceData.weather_temp_units, raceData.weather_humidity,
+        raceData.weather_wind_speed, raceData.weather_wind_units, raceData.weather_sky, raceData.time_of_day,
+        existing.id
+      );
+    } else {
+      await db.insert(`
+        INSERT INTO races (
+          season_id, round_number, track_name, track_config, scheduled_at, laps,
+          status, session_name, iracing_league_session_id,
+          weather_temp, weather_temp_units, weather_humidity,
+          weather_wind_speed, weather_wind_units, weather_sky, time_of_day
+        ) VALUES (?, ?, ?, ?, ?, ?, 'upcoming', ?, ?, ?, ?, ?, ?, ?, ?, ?)`,
+        aprlSeasonId, i + 1,
+        raceData.track_name, raceData.track_config, raceData.scheduled_at, raceData.laps,
+        raceData.session_name, raceData.iracing_league_session_id,
+        raceData.weather_temp, raceData.weather_temp_units, raceData.weather_humidity,
+        raceData.weather_wind_speed, raceData.weather_wind_units, raceData.weather_sky, raceData.time_of_day
+      );
+    }
+    imported++;
+  }
+
+  return { imported, skipped, total: sessions.length };
+}
+
+module.exports = { authenticate, fetchFromIRacing, importRaceResults, importLeagueSchedule };

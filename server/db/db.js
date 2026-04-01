@@ -84,6 +84,17 @@ async function initDb() {
   // Unique car number per league (partial index ignores NULLs automatically)
   await pool.query(`CREATE UNIQUE INDEX IF NOT EXISTS uq_league_car_number ON league_memberships(league_id, car_number) WHERE car_number IS NOT NULL`);
 
+  // Migrate races table with iRacing session details
+  await pool.query(`ALTER TABLE races ADD COLUMN IF NOT EXISTS iracing_league_session_id INTEGER`);
+  await pool.query(`ALTER TABLE races ADD COLUMN IF NOT EXISTS weather_temp REAL`);
+  await pool.query(`ALTER TABLE races ADD COLUMN IF NOT EXISTS weather_temp_units INTEGER`);
+  await pool.query(`ALTER TABLE races ADD COLUMN IF NOT EXISTS weather_humidity INTEGER`);
+  await pool.query(`ALTER TABLE races ADD COLUMN IF NOT EXISTS weather_wind_speed REAL`);
+  await pool.query(`ALTER TABLE races ADD COLUMN IF NOT EXISTS weather_wind_units INTEGER`);
+  await pool.query(`ALTER TABLE races ADD COLUMN IF NOT EXISTS weather_sky INTEGER`);
+  await pool.query(`ALTER TABLE races ADD COLUMN IF NOT EXISTS time_of_day INTEGER`);
+  await pool.query(`ALTER TABLE races ADD COLUMN IF NOT EXISTS session_name TEXT`);
+
   // Give league.id an auto-increment sequence (it was originally a single hardcoded row)
   await pool.query(`CREATE SEQUENCE IF NOT EXISTS league_id_seq`);
   await pool.query(`SELECT setval('league_id_seq', COALESCE((SELECT MAX(id) FROM league), 1))`);
