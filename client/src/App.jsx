@@ -17,6 +17,7 @@ import IRacingConfig from './pages/admin/IRacingConfig';
 import DiscordConfig from './pages/admin/DiscordConfig';
 import Settings from './pages/admin/Settings';
 import IRT from './pages/admin/IRT';
+import IRTReview from './pages/IRTReview';
 
 export default function App() {
   return (
@@ -40,6 +41,7 @@ export default function App() {
             <Route path="settings" element={<Settings />} />
             <Route path="irt" element={<IRT />} />
           </Route>
+          <Route path="/irt-review" element={<IRTReview />} />
           <Route path="*" element={<Navigate to="/" replace />} />
         </Routes>
       </AuthProvider>

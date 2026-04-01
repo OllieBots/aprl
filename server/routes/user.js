@@ -10,7 +10,7 @@ router.get('/dashboard', requireAuth, async (req, res) => {
 
     // Leagues this user is in
     const memberships = await db.all(`
-      SELECT lm.id, lm.status, lm.role, lm.created_at,
+      SELECT lm.id, lm.status, lm.role, lm.created_at, lm.irt_reviewer,
         l.id as league_id, l.name as league_name, l.slug,
         s.name as season_name, s.series
       FROM league_memberships lm

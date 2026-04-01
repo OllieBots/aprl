@@ -74,6 +74,18 @@ export const activity = {
   list: (params) => api.get('/activity', { params }),
 };
 
+export const irt = {
+  list: (params) => api.get('/irt', { params }),
+  counts: () => api.get('/irt/counts'),
+  get: (id) => api.get(`/irt/${id}`),
+  update: (id, data) => api.put(`/irt/${id}`, data),
+  vote: (id, vote) => api.post(`/irt/${id}/vote`, { vote }),
+  removeVote: (id) => api.delete(`/irt/${id}/vote`),
+  comment: (id, body) => api.post(`/irt/${id}/comments`, { body }),
+  reviewers: () => api.get('/irt/reviewers'),
+  setReviewer: (membershipId, irt_reviewer) => api.put(`/irt/reviewers/${membershipId}`, { irt_reviewer }),
+};
+
 export const members = {
   list: (leagueId) => api.get(`/members/${leagueId}`),
   invite: (leagueId, iracing_cust_id) => api.post(`/members/${leagueId}/invite`, { iracing_cust_id }),

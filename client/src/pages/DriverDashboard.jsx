@@ -34,6 +34,7 @@ export default function DriverDashboard() {
 
   const activeLeagues = data?.memberships?.filter(m => m.status === 'active') || [];
   const pendingLeagues = data?.memberships?.filter(m => m.status === 'pending') || [];
+  const isIRTReviewer = activeLeagues.some(m => m.irt_reviewer);
 
   return (
     <div style={{ minHeight: '100vh', background: 'var(--bg)' }}>
@@ -44,6 +45,14 @@ export default function DriverDashboard() {
           <span style={{ fontWeight: 700, fontSize: 15, color: 'var(--text)' }}>APRL</span>
         </Link>
         <div style={{ display: 'flex', alignItems: 'center', gap: 16 }}>
+          {isIRTReviewer && !ownedLeague && (
+            <Link
+              to="/irt-review"
+              style={{ fontSize: 13, fontWeight: 600, color: 'var(--text2)', textDecoration: 'none', padding: '6px 12px', borderRadius: 6, border: '1px solid var(--border2)' }}
+            >
+              IRT Review
+            </Link>
+          )}
           {ownedLeague && (
             <Link
               to="/admin"

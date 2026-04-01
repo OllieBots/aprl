@@ -84,6 +84,24 @@ async function initDb() {
   // Unique car number per league (partial index ignores NULLs automatically)
   await pool.query(`CREATE UNIQUE INDEX IF NOT EXISTS uq_league_car_number ON league_memberships(league_id, car_number) WHERE car_number IS NOT NULL`);
 
+  // IRT reviewer access + voting/discussion tables
+  await pool.query(`ALTER TABLE league_memberships ADD COLUMN IF NOT EXISTS irt_reviewer BOOLEAN DEFAULT false`);
+  await pool.query(`CREATE TABLE IF NOT EXISTS incident_votes (
+    id SERIAL PRIMARY KEY,
+    incident_id INTEGER REFERENCES incident_reports(id) ON DELETE CASCADE,
+    user_id INTEGER REFERENCES users(id),
+    vote TEXT NOT NULL,
+    created_at BIGINT DEFAULT floor(extract(epoch from now()))::BIGINT,
+    UNIQUE(incident_id, user_id)
+  )`);
+  await pool.query(`CREATE TABLE IF NOT EXISTS incident_comments (
+    id SERIAL PRIMARY KEY,
+    incident_id INTEGER REFERENCES incident_reports(id) ON DELETE CASCADE,
+    user_id INTEGER REFERENCES users(id),
+    body TEXT NOT NULL,
+    created_at BIGINT DEFAULT floor(extract(epoch from now()))::BIGINT
+  )`);
+
   // Migrate races table with iRacing session details
   await pool.query(`ALTER TABLE races ADD COLUMN IF NOT EXISTS iracing_league_session_id INTEGER`);
   await pool.query(`ALTER TABLE races ADD COLUMN IF NOT EXISTS weather_temp REAL`);
