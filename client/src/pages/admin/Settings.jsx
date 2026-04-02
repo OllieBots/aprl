@@ -1,4 +1,5 @@
 import { useState, useEffect } from 'react';
+import { Link } from 'react-router-dom';
 import PageHeader from '../../components/PageHeader';
 import Card, { CardHeader } from '../../components/Card';
 import Button from '../../components/Button';
@@ -13,7 +14,7 @@ const DEFAULT_SCORING = {
 };
 
 export default function Settings() {
-  const [leagueData, setLeagueData] = useState({ name: '', iracing_league_id: '', discord_guild_id: '', primary_color: '#e8302a', secondary_color: '#f0b323', banner_url: '', logo_url: '' });
+  const [leagueData, setLeagueData] = useState({ name: '', slug: '', iracing_league_id: '', discord_guild_id: '', primary_color: '#e8302a', secondary_color: '#f0b323', banner_url: '', logo_url: '' });
   const [seasonData, setSeasonData] = useState(null);
   const [scoring, setScoring] = useState(DEFAULT_SCORING);
   const [savingLeague, setSavingLeague] = useState(false);
@@ -29,6 +30,7 @@ export default function Settings() {
       const [l, s] = await Promise.all([league.get(), seasons.list()]);
       if (l) setLeagueData({
         name: l.name || '',
+        slug: l.slug || '',
         iracing_league_id: l.iracing_league_id || '',
         discord_guild_id: l.discord_guild_id || '',
         primary_color: l.primary_color || '#e8302a',
@@ -51,13 +53,10 @@ export default function Settings() {
     e?.preventDefault();
     setSavingLeague(true);
     setSaveErr('');
-    console.log('[Settings] saving leagueData:', leagueData);
     try {
-      const result = await league.update(leagueData);
-      console.log('[Settings] save result:', result);
+      await league.update(leagueData);
       showMsg('Saved');
     } catch (err) {
-      console.error('[Settings] save error:', err);
       setSaveErr(err.message);
     } finally {
       setSavingLeague(false);
@@ -129,6 +128,14 @@ export default function Settings() {
         <Card>
           <CardHeader title="League Appearance" />
           <div className="p-6 max-w-lg space-y-5">
+            <div className="px-4 py-3 rounded-md text-sm" style={{ background: 'var(--bg3)', border: '1px solid var(--border)', color: 'var(--text2)', lineHeight: 1.6 }}>
+              Colors, logo, and banner appear on your <strong style={{ color: 'var(--text)' }}>public league page</strong> — not on this admin panel.
+              {leagueData.slug && (
+                <> <Link to={`/league/${leagueData.slug}`} target="_blank" style={{ color: 'var(--accent)', fontWeight: 600, textDecoration: 'none' }}>
+                  Preview league page →
+                </Link></>
+              )}
+            </div>
             {/* Color pickers */}
             <div className="flex gap-8">
               <div className="flex flex-col gap-2">
