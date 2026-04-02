@@ -108,6 +108,17 @@ async function initDb() {
     created_at BIGINT DEFAULT floor(extract(epoch from now()))::BIGINT
   )`);
 
+  // League recruitment fields
+  await pool.query(`ALTER TABLE league ADD COLUMN IF NOT EXISTS is_recruiting BOOLEAN DEFAULT false`);
+  await pool.query(`ALTER TABLE league ADD COLUMN IF NOT EXISTS race_day TEXT`);
+  await pool.query(`ALTER TABLE league ADD COLUMN IF NOT EXISTS race_time TEXT`);
+  await pool.query(`ALTER TABLE league ADD COLUMN IF NOT EXISTS irating_min INTEGER`);
+  await pool.query(`ALTER TABLE league ADD COLUMN IF NOT EXISTS irating_max INTEGER`);
+  await pool.query(`ALTER TABLE league ADD COLUMN IF NOT EXISTS open_spots INTEGER`);
+  await pool.query(`ALTER TABLE league ADD COLUMN IF NOT EXISTS total_spots INTEGER`);
+  await pool.query(`ALTER TABLE league ADD COLUMN IF NOT EXISTS skill_level TEXT`);
+  await pool.query(`ALTER TABLE league ADD COLUMN IF NOT EXISTS recruitment_blurb TEXT`);
+
   // Notifications
   await pool.query(`CREATE TABLE IF NOT EXISTS notifications (
     id SERIAL PRIMARY KEY,

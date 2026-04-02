@@ -3,16 +3,33 @@ const router = express.Router();
 const db = require('../db/db');
 const { optionalAuth } = require('../middleware/auth');
 
-// GET /api/public/leagues — list all leagues (for home page recruitment section)
+// GET /api/public/leagues — list all leagues (home page)
+// ?recruiting=1 filters to only leagues actively recruiting
 router.get('/leagues', async (req, res) => {
   try {
+    const { recruiting } = req.query;
+    let where = 'WHERE l.slug IS NOT NULL';
+    if (recruiting) where += ' AND l.is_recruiting = true';
+
     const leagues = await db.all(`
       SELECT l.id, l.name, l.slug, l.description,
+        l.primary_color, l.secondary_color, l.logo_url,
+        l.is_recruiting, l.race_day, l.race_time,
+        l.irating_min, l.irating_max, l.open_spots, l.total_spots,
+        l.skill_level, l.recruitment_blurb,
+        s.name as season_name, s.series, s.car_class,
         COUNT(DISTINCT lm.user_id)::int as member_count
       FROM league l
       LEFT JOIN league_memberships lm ON l.id = lm.league_id AND lm.status = 'active'
-      WHERE l.slug IS NOT NULL
-      GROUP BY l.id, l.name, l.slug, l.description
+      LEFT JOIN seasons s ON s.league_id = l.id AND s.is_active = 1
+      ${where}
+      GROUP BY l.id, l.name, l.slug, l.description,
+        l.primary_color, l.secondary_color, l.logo_url,
+        l.is_recruiting, l.race_day, l.race_time,
+        l.irating_min, l.irating_max, l.open_spots, l.total_spots,
+        l.skill_level, l.recruitment_blurb,
+        s.name, s.series, s.car_class
+      ORDER BY l.is_recruiting DESC, l.id ASC
     `);
     res.json(leagues);
   } catch (err) {

@@ -14,7 +14,7 @@ const DEFAULT_SCORING = {
 };
 
 export default function Settings() {
-  const [leagueData, setLeagueData] = useState({ name: '', slug: '', iracing_league_id: '', discord_guild_id: '', primary_color: '#e8302a', secondary_color: '#f0b323', banner_url: '', logo_url: '' });
+  const [leagueData, setLeagueData] = useState({ name: '', slug: '', iracing_league_id: '', discord_guild_id: '', primary_color: '#e8302a', secondary_color: '#f0b323', banner_url: '', logo_url: '', is_recruiting: false, race_day: '', race_time: '', irating_min: '', irating_max: '', open_spots: '', total_spots: '', skill_level: '', recruitment_blurb: '' });
   const [seasonData, setSeasonData] = useState(null);
   const [scoring, setScoring] = useState(DEFAULT_SCORING);
   const [savingLeague, setSavingLeague] = useState(false);
@@ -37,6 +37,15 @@ export default function Settings() {
         secondary_color: l.secondary_color || '#f0b323',
         banner_url: l.banner_url || '',
         logo_url: l.logo_url || '',
+        is_recruiting: !!l.is_recruiting,
+        race_day: l.race_day || '',
+        race_time: l.race_time || '',
+        irating_min: l.irating_min ?? '',
+        irating_max: l.irating_max ?? '',
+        open_spots: l.open_spots ?? '',
+        total_spots: l.total_spots ?? '',
+        skill_level: l.skill_level || '',
+        recruitment_blurb: l.recruitment_blurb || '',
       });
       const active = s?.find(s => s.is_active) || s?.[0];
       if (active) {
@@ -241,6 +250,124 @@ export default function Settings() {
 
             <Button onClick={saveLeague} disabled={savingLeague}>
               {savingLeague ? 'Saving...' : 'Save Appearance'}
+            </Button>
+          </div>
+        </Card>
+
+        {/* Recruitment */}
+        <Card>
+          <CardHeader title="Open Recruitment" />
+          <div className="p-6 max-w-lg space-y-5">
+            <div className="px-4 py-3 rounded-md text-sm" style={{ background: 'var(--bg3)', border: '1px solid var(--border)', color: 'var(--text2)', lineHeight: 1.6 }}>
+              When enabled, your league appears in the <strong style={{ color: 'var(--text)' }}>Open Leagues</strong> section on the APRL home page.
+            </div>
+
+            {/* Toggle */}
+            <label style={{ display: 'flex', alignItems: 'center', gap: 12, cursor: 'pointer' }}>
+              <div style={{ position: 'relative', width: 40, height: 22, flexShrink: 0 }}>
+                <input
+                  type="checkbox"
+                  checked={leagueData.is_recruiting}
+                  onChange={e => setLeagueData(d => ({ ...d, is_recruiting: e.target.checked }))}
+                  style={{ opacity: 0, width: 0, height: 0, position: 'absolute' }}
+                />
+                <div
+                  onClick={() => setLeagueData(d => ({ ...d, is_recruiting: !d.is_recruiting }))}
+                  style={{
+                    width: 40, height: 22, borderRadius: 11, cursor: 'pointer', transition: 'background 0.2s',
+                    background: leagueData.is_recruiting ? 'var(--accent)' : 'var(--bg4)',
+                    border: '1px solid var(--border2)', position: 'relative',
+                  }}
+                >
+                  <div style={{
+                    position: 'absolute', top: 2, width: 16, height: 16, borderRadius: '50%',
+                    background: '#fff', boxShadow: '0 1px 3px rgba(0,0,0,0.4)',
+                    transition: 'left 0.2s',
+                    left: leagueData.is_recruiting ? 20 : 2,
+                  }} />
+                </div>
+              </div>
+              <span style={{ fontSize: 14, fontWeight: 600, color: 'var(--text)' }}>
+                {leagueData.is_recruiting ? 'Actively recruiting' : 'Not recruiting'}
+              </span>
+            </label>
+
+            {leagueData.is_recruiting && (
+              <div className="space-y-4">
+                <div className="grid grid-cols-2 gap-4">
+                  <Input
+                    label="Race Day"
+                    placeholder="e.g. Thursdays"
+                    value={leagueData.race_day}
+                    onChange={e => setLeagueData(d => ({ ...d, race_day: e.target.value }))}
+                  />
+                  <Input
+                    label="Race Time"
+                    placeholder="e.g. 8:00 PM EST"
+                    value={leagueData.race_time}
+                    onChange={e => setLeagueData(d => ({ ...d, race_time: e.target.value }))}
+                  />
+                </div>
+                <div className="grid grid-cols-2 gap-4">
+                  <Input
+                    label="iRating Min"
+                    type="number"
+                    placeholder="e.g. 2000"
+                    value={leagueData.irating_min}
+                    onChange={e => setLeagueData(d => ({ ...d, irating_min: e.target.value }))}
+                  />
+                  <Input
+                    label="iRating Max (leave blank for open)"
+                    type="number"
+                    placeholder="e.g. 5000"
+                    value={leagueData.irating_max}
+                    onChange={e => setLeagueData(d => ({ ...d, irating_max: e.target.value }))}
+                  />
+                </div>
+                <div className="grid grid-cols-2 gap-4">
+                  <Input
+                    label="Open Spots"
+                    type="number"
+                    placeholder="e.g. 6"
+                    value={leagueData.open_spots}
+                    onChange={e => setLeagueData(d => ({ ...d, open_spots: e.target.value }))}
+                  />
+                  <Input
+                    label="Total Spots"
+                    type="number"
+                    placeholder="e.g. 24"
+                    value={leagueData.total_spots}
+                    onChange={e => setLeagueData(d => ({ ...d, total_spots: e.target.value }))}
+                  />
+                </div>
+                <div className="flex flex-col gap-1">
+                  <label className="text-xs font-semibold uppercase tracking-wide" style={{ color: 'var(--text2)' }}>Skill Level</label>
+                  <select
+                    value={leagueData.skill_level}
+                    onChange={e => setLeagueData(d => ({ ...d, skill_level: e.target.value }))}
+                    style={{ padding: '9px 12px', borderRadius: 6, background: 'var(--bg3)', border: '1px solid var(--border2)', color: 'var(--text)', fontSize: 14 }}
+                  >
+                    <option value="">— Select —</option>
+                    {['Beginner', 'Intermediate', 'Advanced', 'Pro'].map(v => (
+                      <option key={v} value={v}>{v}</option>
+                    ))}
+                  </select>
+                </div>
+                <div className="flex flex-col gap-1">
+                  <label className="text-xs font-semibold uppercase tracking-wide" style={{ color: 'var(--text2)' }}>Recruitment Description</label>
+                  <textarea
+                    value={leagueData.recruitment_blurb}
+                    onChange={e => setLeagueData(d => ({ ...d, recruitment_blurb: e.target.value }))}
+                    rows={3}
+                    placeholder="Brief description shown to drivers browsing open leagues..."
+                    style={{ padding: '10px 12px', borderRadius: 6, background: 'var(--bg3)', border: '1px solid var(--border2)', color: 'var(--text)', fontSize: 14, resize: 'vertical', fontFamily: 'inherit' }}
+                  />
+                </div>
+              </div>
+            )}
+
+            <Button onClick={saveLeague} disabled={savingLeague}>
+              {savingLeague ? 'Saving...' : 'Save Recruitment Settings'}
             </Button>
           </div>
         </Card>

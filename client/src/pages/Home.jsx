@@ -2,59 +2,6 @@ import { useState, useEffect, useRef } from 'react';
 import { Link, useNavigate } from 'react-router-dom';
 import api from '../lib/api';
 
-// ─── Mock data (replace with API calls later) ────────────────────────────────
-
-const OPEN_LEAGUES = [
-  {
-    id: 1,
-    name: 'Apex Pro Racing League',
-    series: 'GT3 Championship',
-    car_class: 'GT3',
-    platform: 'iRacing',
-    open_spots: 4,
-    total_spots: 20,
-    skill_level: 'Intermediate',
-    irating_min: 2500,
-    irating_max: 5000,
-    race_day: 'Thursdays',
-    race_time: '8:00 PM EST',
-    season: 'Season 2 — Starting Apr 17',
-    description: 'Competitive GT3 series with structured championship points, full stewards process, and Discord community.',
-  },
-  {
-    id: 2,
-    name: 'Pacific Coast Sim Series',
-    series: 'LMP2 Endurance',
-    car_class: 'LMP2',
-    platform: 'iRacing',
-    open_spots: 7,
-    total_spots: 16,
-    skill_level: 'Advanced',
-    irating_min: 4000,
-    irating_max: null,
-    race_day: 'Saturdays',
-    race_time: '7:00 PM PST',
-    season: 'Season 1 — Starting May 3',
-    description: '2–3 hour endurance races with mandatory pit windows, driver swaps optional. Full broadcast production.',
-  },
-  {
-    id: 3,
-    name: 'Friday Night Racers',
-    series: 'Skippy Cup',
-    car_class: 'Formula',
-    platform: 'iRacing',
-    open_spots: 12,
-    total_spots: 24,
-    skill_level: 'Beginner',
-    irating_min: 0,
-    irating_max: 3000,
-    race_day: 'Fridays',
-    race_time: '9:00 PM EST',
-    season: 'Season 3 — Starting Apr 11',
-    description: 'Welcoming open-wheel league for drivers new to competitive racing. Coaching available. Low-pressure environment.',
-  },
-];
-
 const NEWS = [
   {
     id: 1,
@@ -88,12 +35,20 @@ const SPONSORS = [
 // ─── Page ─────────────────────────────────────────────────────────────────────
 
 export default function Home() {
+  const [recruitingLeagues, setRecruitingLeagues] = useState([]);
+
+  useEffect(() => {
+    api.get('/public/leagues', { params: { recruiting: 1 } })
+      .then(setRecruitingLeagues)
+      .catch(() => {});
+  }, []);
+
   return (
     <div style={{ minHeight: '100vh', background: 'var(--bg)', color: 'var(--text)' }}>
       <Nav />
       <Hero />
       <SponsorBanner sponsors={SPONSORS} />
-      <OpenRecruitment leagues={OPEN_LEAGUES} />
+      <OpenRecruitment leagues={recruitingLeagues} />
       <DriverSearch />
       <SponsorBanner sponsors={SPONSORS} slim />
       <NewsSection articles={NEWS} />
@@ -318,112 +273,170 @@ function OpenRecruitment({ leagues }) {
       <div className="max-w-6xl mx-auto px-8">
         <div className="flex items-end justify-between mb-8">
           <div>
-            <div
-              className="text-xs font-semibold uppercase tracking-widest mb-2"
-              style={{ color: 'var(--accent)' }}
-            >
+            <div className="text-xs font-semibold uppercase tracking-widest mb-2" style={{ color: 'var(--accent)' }}>
               Open Now
             </div>
-            <h2
-              className="font-display font-bold text-3xl uppercase"
-              style={{ color: 'var(--text)', letterSpacing: '0.04em' }}
-            >
+            <h2 className="font-display font-bold text-3xl uppercase" style={{ color: 'var(--text)', letterSpacing: '0.04em' }}>
               Leagues Recruiting
             </h2>
           </div>
           <span className="text-sm" style={{ color: 'var(--text3)' }}>
-            {leagues.length} leagues with open spots
+            {leagues.length} league{leagues.length !== 1 ? 's' : ''} with open spots
           </span>
         </div>
 
-        <div className="grid grid-cols-3 gap-5">
-          {leagues.map(league => (
-            <LeagueCard key={league.id} league={league} />
-          ))}
-        </div>
+        {leagues.length === 0 ? (
+          <div style={{ textAlign: 'center', padding: '48px 0', color: 'var(--text3)', fontSize: 14 }}>
+            No leagues are currently recruiting. Check back soon.
+          </div>
+        ) : (
+          <div className="grid grid-cols-3 gap-5">
+            {leagues.map(league => (
+              <LeagueCard key={league.id} league={league} />
+            ))}
+          </div>
+        )}
       </div>
     </section>
   );
 }
 
 function LeagueCard({ league }) {
-  const spotsLeft = league.open_spots;
-  const pctFull = Math.round(((league.total_spots - spotsLeft) / league.total_spots) * 100);
-  const urgency = spotsLeft <= 3 ? 'var(--accent)' : spotsLeft <= 7 ? 'var(--gold)' : 'var(--green)';
+  const navigate = useNavigate();
+  const [applying, setApplying] = useState(false);
+  const [applyMsg, setApplyMsg] = useState('');
+
+  const spotsLeft = league.open_spots ?? null;
+  const totalSpots = league.total_spots ?? null;
+  const pctFull = spotsLeft != null && totalSpots != null && totalSpots > 0
+    ? Math.round(((totalSpots - spotsLeft) / totalSpots) * 100)
+    : null;
+  const urgency = spotsLeft == null ? 'var(--blue)'
+    : spotsLeft <= 3 ? 'var(--accent)'
+    : spotsLeft <= 7 ? 'var(--gold)'
+    : 'var(--green)';
+
+  const accentColor = league.primary_color || 'var(--accent)';
+
+  async function handleApply() {
+    try {
+      setApplying(true);
+      setApplyMsg('');
+      await api.post(`/user/leagues/${league.slug}/join`);
+      setApplyMsg('Request sent! Waiting for admin approval.');
+    } catch (err) {
+      if (err.message?.includes('already') || err.message?.includes('pending') || err.message?.includes('invited')) {
+        setApplyMsg(err.message);
+      } else if (err.message?.includes('401') || err.message?.includes('auth')) {
+        navigate('/login');
+      } else {
+        // Not authenticated — redirect to login
+        navigate('/login');
+      }
+    } finally {
+      setApplying(false);
+    }
+  }
+
+  const details = [];
+  if (league.race_day && league.race_time) details.push({ icon: '📅', text: `${league.race_day} · ${league.race_time}` });
+  else if (league.race_day) details.push({ icon: '📅', text: league.race_day });
+  if (league.season_name) details.push({ icon: '🏁', text: league.season_name });
+  if (league.irating_min != null || league.irating_max != null) {
+    const min = league.irating_min ?? 0;
+    const text = league.irating_max
+      ? `iRating: ${min.toLocaleString()}–${league.irating_max.toLocaleString()}`
+      : `iRating: ${min.toLocaleString()}+`;
+    details.push({ icon: '📊', text });
+  }
 
   return (
-    <div
-      className="rounded-md flex flex-col overflow-hidden"
-      style={{ background: 'var(--bg2)', border: '1px solid var(--border)' }}
-    >
-      {/* Top accent */}
-      <div className="h-0.5" style={{ background: 'var(--accent)' }} />
+    <div className="rounded-md flex flex-col overflow-hidden" style={{ background: 'var(--bg2)', border: '1px solid var(--border)' }}>
+      {/* Top color stripe */}
+      <div className="h-0.5" style={{ background: accentColor }} />
 
       <div className="p-5 flex-1">
         {/* Badges */}
         <div className="flex items-center gap-2 mb-3 flex-wrap">
-          <SmallBadge label={league.car_class} color="var(--accent)" />
-          <SmallBadge label={league.skill_level} color="var(--blue)" />
-          <SmallBadge label={league.platform} color="var(--text3)" />
+          {league.car_class && <SmallBadge label={league.car_class} color={accentColor} />}
+          {league.skill_level && <SmallBadge label={league.skill_level} color="var(--blue)" />}
+          <SmallBadge label="iRacing" color="var(--text3)" />
         </div>
 
-        <h3
-          className="font-display font-bold text-lg uppercase mb-1 leading-tight"
-          style={{ color: 'var(--text)', letterSpacing: '0.03em' }}
-        >
+        {/* Name + series */}
+        <h3 className="font-display font-bold text-lg uppercase mb-1 leading-tight" style={{ color: 'var(--text)', letterSpacing: '0.03em' }}>
           {league.name}
         </h3>
-        <div className="text-sm mb-3" style={{ color: 'var(--accent)' }}>{league.series}</div>
-        <p className="text-sm leading-relaxed mb-4" style={{ color: 'var(--text2)' }}>
-          {league.description}
-        </p>
+        {league.series && <div className="text-sm mb-3" style={{ color: accentColor }}>{league.series}</div>}
+
+        {/* Description */}
+        {(league.recruitment_blurb || league.description) && (
+          <p className="text-sm leading-relaxed mb-4" style={{ color: 'var(--text2)' }}>
+            {league.recruitment_blurb || league.description}
+          </p>
+        )}
 
         {/* Details */}
-        <div className="space-y-1.5 mb-4">
-          {[
-            { icon: '📅', text: `${league.race_day} · ${league.race_time}` },
-            { icon: '🏁', text: league.season },
-            {
-              icon: '📊',
-              text: league.irating_max
-                ? `iRating: ${league.irating_min.toLocaleString()}–${league.irating_max.toLocaleString()}`
-                : `iRating: ${league.irating_min.toLocaleString()}+`,
-            },
-          ].map(d => (
-            <div key={d.text} className="flex items-center gap-2">
-              <span className="text-xs">{d.icon}</span>
-              <span className="text-xs" style={{ color: 'var(--text2)' }}>{d.text}</span>
-            </div>
-          ))}
-        </div>
+        {details.length > 0 && (
+          <div className="space-y-1.5 mb-4">
+            {details.map(d => (
+              <div key={d.text} className="flex items-center gap-2">
+                <span className="text-xs">{d.icon}</span>
+                <span className="text-xs" style={{ color: 'var(--text2)' }}>{d.text}</span>
+              </div>
+            ))}
+          </div>
+        )}
 
         {/* Spots fill bar */}
-        <div className="mb-1 flex items-center justify-between">
-          <span className="text-xs" style={{ color: 'var(--text3)' }}>
-            {league.total_spots - spotsLeft}/{league.total_spots} spots filled
-          </span>
-          <span className="text-xs font-semibold" style={{ color: urgency }}>
-            {spotsLeft} open
-          </span>
-        </div>
-        <div className="rounded-full overflow-hidden h-1.5" style={{ background: 'var(--bg4)' }}>
-          <div
-            className="h-full rounded-full"
-            style={{ width: `${pctFull}%`, background: urgency }}
-          />
-        </div>
+        {pctFull != null && (
+          <>
+            <div className="mb-1 flex items-center justify-between">
+              <span className="text-xs" style={{ color: 'var(--text3)' }}>
+                {totalSpots - spotsLeft}/{totalSpots} spots filled
+              </span>
+              <span className="text-xs font-semibold" style={{ color: urgency }}>
+                {spotsLeft} open
+              </span>
+            </div>
+            <div className="rounded-full overflow-hidden h-1.5" style={{ background: 'var(--bg4)' }}>
+              <div className="h-full rounded-full" style={{ width: `${pctFull}%`, background: urgency }} />
+            </div>
+          </>
+        )}
       </div>
 
-      {/* Apply button */}
-      <div className="px-5 pb-5">
-        <button
-          className="w-full py-2.5 rounded-md text-sm font-semibold"
-          style={{ background: 'rgba(232,48,42,0.12)', color: 'var(--accent)', border: '1px solid rgba(232,48,42,0.25)' }}
-          onMouseEnter={e => e.currentTarget.style.background = 'rgba(232,48,42,0.2)'}
-          onMouseLeave={e => e.currentTarget.style.background = 'rgba(232,48,42,0.12)'}
-        >
-          Apply to Join
-        </button>
+      {/* Footer */}
+      <div className="px-5 pb-5 space-y-2">
+        {applyMsg && (
+          <p style={{ fontSize: 12, color: 'var(--text3)', textAlign: 'center' }}>{applyMsg}</p>
+        )}
+        <div style={{ display: 'flex', gap: 8 }}>
+          <Link
+            to={`/league/${league.slug}`}
+            style={{
+              flex: 1, padding: '9px 0', borderRadius: 7, textAlign: 'center',
+              fontSize: 13, fontWeight: 600, textDecoration: 'none',
+              background: 'var(--bg3)', color: 'var(--text2)', border: '1px solid var(--border2)',
+            }}
+          >
+            View League
+          </Link>
+          <button
+            onClick={handleApply}
+            disabled={applying || !!applyMsg}
+            style={{
+              flex: 2, padding: '9px 0', borderRadius: 7, fontSize: 13, fontWeight: 700,
+              background: applyMsg ? 'var(--bg3)' : `${accentColor}20`,
+              color: applyMsg ? 'var(--text3)' : accentColor,
+              border: `1px solid ${applyMsg ? 'var(--border2)' : accentColor + '40'}`,
+              cursor: applying || applyMsg ? 'default' : 'pointer',
+              opacity: applying ? 0.7 : 1,
+            }}
+          >
+            {applying ? 'Applying...' : applyMsg ? 'Applied ✓' : 'Apply to Join'}
+          </button>
+        </div>
       </div>
     </div>
   );
