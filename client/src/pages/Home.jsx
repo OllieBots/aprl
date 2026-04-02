@@ -1,6 +1,7 @@
 import { useState, useEffect, useRef } from 'react';
 import { Link, useNavigate } from 'react-router-dom';
 import api from '../lib/api';
+import { useAuth } from '../context/AuthContext';
 
 const NEWS = [
   {
@@ -61,6 +62,7 @@ export default function Home() {
 
 function Nav() {
   const [menuOpen, setMenuOpen] = useState(false);
+  const { user, ownedLeague } = useAuth();
   return (
     <nav className="sticky top-0 z-40" style={{ background: 'var(--bg2)', borderBottom: '1px solid var(--border)' }}>
       <div style={{ maxWidth: 1152, margin: '0 auto', padding: '0 24px', height: 56, display: 'flex', alignItems: 'center', justifyContent: 'space-between' }}>
@@ -82,8 +84,19 @@ function Nav() {
 
         {/* Desktop CTA */}
         <div className="hide-mobile" style={{ display: 'flex', alignItems: 'center', gap: 10 }}>
-          <Link to="/login" style={{ padding: '7px 16px', borderRadius: 6, fontSize: 13, fontWeight: 600, color: 'var(--text2)', textDecoration: 'none', border: '1px solid var(--border2)' }}>Sign In</Link>
-          <Link to="/signup" style={{ padding: '7px 16px', borderRadius: 6, fontSize: 13, fontWeight: 700, color: '#fff', textDecoration: 'none', background: 'var(--accent)' }}>Join APRL</Link>
+          {user ? (
+            <>
+              {ownedLeague && (
+                <Link to="/admin" style={{ padding: '7px 16px', borderRadius: 6, fontSize: 13, fontWeight: 700, color: 'var(--accent)', textDecoration: 'none', background: 'rgba(232,48,42,0.1)', border: '1px solid rgba(232,48,42,0.3)' }}>Admin Panel</Link>
+              )}
+              <Link to="/dashboard" style={{ padding: '7px 16px', borderRadius: 6, fontSize: 13, fontWeight: 700, color: '#fff', textDecoration: 'none', background: 'var(--accent)' }}>My Dashboard</Link>
+            </>
+          ) : (
+            <>
+              <Link to="/login" style={{ padding: '7px 16px', borderRadius: 6, fontSize: 13, fontWeight: 600, color: 'var(--text2)', textDecoration: 'none', border: '1px solid var(--border2)' }}>Sign In</Link>
+              <Link to="/signup" style={{ padding: '7px 16px', borderRadius: 6, fontSize: 13, fontWeight: 700, color: '#fff', textDecoration: 'none', background: 'var(--accent)' }}>Join APRL</Link>
+            </>
+          )}
         </div>
 
         {/* Mobile hamburger */}
@@ -107,8 +120,19 @@ function Nav() {
             <a key={item.label} href={item.href} onClick={() => setMenuOpen(false)} style={{ fontSize: 15, fontWeight: 600, color: 'var(--text2)', textDecoration: 'none', padding: '4px 0' }}>{item.label}</a>
           ))}
           <div style={{ display: 'flex', gap: 8, paddingTop: 4 }}>
-            <Link to="/login" onClick={() => setMenuOpen(false)} style={{ flex: 1, padding: '9px 0', textAlign: 'center', borderRadius: 6, fontSize: 13, fontWeight: 600, color: 'var(--text2)', textDecoration: 'none', border: '1px solid var(--border2)' }}>Sign In</Link>
-            <Link to="/signup" onClick={() => setMenuOpen(false)} style={{ flex: 1, padding: '9px 0', textAlign: 'center', borderRadius: 6, fontSize: 13, fontWeight: 700, color: '#fff', textDecoration: 'none', background: 'var(--accent)' }}>Join APRL</Link>
+            {user ? (
+              <>
+                {ownedLeague && (
+                  <Link to="/admin" onClick={() => setMenuOpen(false)} style={{ flex: 1, padding: '9px 0', textAlign: 'center', borderRadius: 6, fontSize: 13, fontWeight: 700, color: 'var(--accent)', textDecoration: 'none', border: '1px solid rgba(232,48,42,0.3)', background: 'rgba(232,48,42,0.1)' }}>Admin</Link>
+                )}
+                <Link to="/dashboard" onClick={() => setMenuOpen(false)} style={{ flex: 2, padding: '9px 0', textAlign: 'center', borderRadius: 6, fontSize: 13, fontWeight: 700, color: '#fff', textDecoration: 'none', background: 'var(--accent)' }}>My Dashboard</Link>
+              </>
+            ) : (
+              <>
+                <Link to="/login" onClick={() => setMenuOpen(false)} style={{ flex: 1, padding: '9px 0', textAlign: 'center', borderRadius: 6, fontSize: 13, fontWeight: 600, color: 'var(--text2)', textDecoration: 'none', border: '1px solid var(--border2)' }}>Sign In</Link>
+                <Link to="/signup" onClick={() => setMenuOpen(false)} style={{ flex: 1, padding: '9px 0', textAlign: 'center', borderRadius: 6, fontSize: 13, fontWeight: 700, color: '#fff', textDecoration: 'none', background: 'var(--accent)' }}>Join APRL</Link>
+              </>
+            )}
           </div>
         </div>
       )}

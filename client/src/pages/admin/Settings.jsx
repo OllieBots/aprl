@@ -263,34 +263,27 @@ export default function Settings() {
             </div>
 
             {/* Toggle */}
-            <label style={{ display: 'flex', alignItems: 'center', gap: 12, cursor: 'pointer' }}>
-              <div style={{ position: 'relative', width: 40, height: 22, flexShrink: 0 }}>
-                <input
-                  type="checkbox"
-                  checked={leagueData.is_recruiting}
-                  onChange={e => setLeagueData(d => ({ ...d, is_recruiting: e.target.checked }))}
-                  style={{ opacity: 0, width: 0, height: 0, position: 'absolute' }}
-                />
-                <div
-                  onClick={() => setLeagueData(d => ({ ...d, is_recruiting: !d.is_recruiting }))}
-                  style={{
-                    width: 40, height: 22, borderRadius: 11, cursor: 'pointer', transition: 'background 0.2s',
-                    background: leagueData.is_recruiting ? 'var(--accent)' : 'var(--bg4)',
-                    border: '1px solid var(--border2)', position: 'relative',
-                  }}
-                >
-                  <div style={{
-                    position: 'absolute', top: 2, width: 16, height: 16, borderRadius: '50%',
-                    background: '#fff', boxShadow: '0 1px 3px rgba(0,0,0,0.4)',
-                    transition: 'left 0.2s',
-                    left: leagueData.is_recruiting ? 20 : 2,
-                  }} />
-                </div>
+            <div
+              onClick={() => setLeagueData(d => ({ ...d, is_recruiting: !d.is_recruiting }))}
+              style={{ display: 'flex', alignItems: 'center', gap: 12, cursor: 'pointer', userSelect: 'none' }}
+            >
+              <div style={{
+                position: 'relative', width: 40, height: 22, borderRadius: 11, flexShrink: 0,
+                transition: 'background 0.2s',
+                background: leagueData.is_recruiting ? 'var(--accent)' : 'var(--bg4)',
+                border: '1px solid var(--border2)',
+              }}>
+                <div style={{
+                  position: 'absolute', top: 2, width: 16, height: 16, borderRadius: '50%',
+                  background: '#fff', boxShadow: '0 1px 3px rgba(0,0,0,0.4)',
+                  transition: 'left 0.2s',
+                  left: leagueData.is_recruiting ? 20 : 2,
+                }} />
               </div>
               <span style={{ fontSize: 14, fontWeight: 600, color: 'var(--text)' }}>
                 {leagueData.is_recruiting ? 'Actively recruiting' : 'Not recruiting'}
               </span>
-            </label>
+            </div>
 
             {leagueData.is_recruiting && (
               <div className="space-y-4">
