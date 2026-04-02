@@ -3,6 +3,7 @@ const router = express.Router();
 const db = require('../db/db');
 const { requireAuth } = require('../middleware/auth');
 const adminLeague = require('../middleware/adminLeague');
+const { createNotification } = require('../lib/notify');
 
 // Determine IRT role for a user in a league: 'admin' | 'reviewer' | null
 async function getIRTRole(userId, leagueId) {
@@ -163,12 +164,22 @@ router.get('/:id', irtAccess, async (req, res) => {
 router.put('/:id', irtAccess, adminOnly, async (req, res) => {
   try {
     const { status, admin_notes } = req.body;
+    const incident = await db.get(
+      'SELECT reporter_user_id, status as old_status FROM incident_reports WHERE id = ? AND league_id = ?',
+      req.params.id, req.leagueId
+    );
     await db.run(
       'UPDATE incident_reports SET status = ?, admin_notes = ? WHERE id = ? AND league_id = ?',
       status, admin_notes ?? null, req.params.id, req.leagueId
     );
     await db.run("INSERT INTO activity_log (type, message) VALUES ('incident', ?)",
       `Incident #${req.params.id} updated to ${status}`);
+    // Notify the reporter if status changed
+    if (incident && status !== incident.old_status) {
+      const statusLabel = { open: 'Open', under_review: 'Under Review', resolved: 'Resolved', dismissed: 'Dismissed' }[status] || status;
+      await createNotification(incident.reporter_user_id, req.leagueId, 'irt_status',
+        `Your incident report #${req.params.id} has been marked as: ${statusLabel}`, null);
+    }
     res.json({ success: true });
   } catch (err) {
     res.status(500).json({ error: err.message });

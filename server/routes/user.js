@@ -2,6 +2,7 @@ const express = require('express');
 const router = express.Router();
 const db = require('../db/db');
 const { requireAuth } = require('../middleware/auth');
+const { createNotification } = require('../lib/notify');
 
 // GET /api/user/dashboard — everything needed for the driver dashboard
 router.get('/dashboard', requireAuth, async (req, res) => {
@@ -143,6 +144,13 @@ router.post('/leagues/:slug/join', requireAuth, async (req, res) => {
       'INSERT INTO league_memberships (user_id, league_id, status, role) VALUES (?, ?, ?, ?)',
       req.user.id, league.id, 'pending', 'driver'
     );
+
+    // Notify league owner of the join request
+    const leagueInfo = await db.get('SELECT owner_user_id, name FROM league WHERE id = ?', league.id);
+    if (leagueInfo?.owner_user_id) {
+      await createNotification(leagueInfo.owner_user_id, league.id, 'join_request',
+        `${req.user.name} has requested to join ${leagueInfo.name}`, '/admin/drivers');
+    }
 
     res.json({ success: true });
   } catch (err) {

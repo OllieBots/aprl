@@ -5,6 +5,7 @@ import api, { userApi } from '../lib/api';
 import Modal from '../components/Modal';
 import Input from '../components/Input';
 import Button from '../components/Button';
+import NotificationBell from '../components/NotificationBell';
 
 export default function DriverDashboard() {
   const { user, ownedLeague, setOwnedLeague, logout } = useAuth();
@@ -61,6 +62,7 @@ export default function DriverDashboard() {
               Admin Panel
             </Link>
           )}
+          <NotificationBell />
           <div style={{ fontSize: 13, color: 'var(--text2)', padding: '0 4px' }}>{user?.name}</div>
           <button
             onClick={logout}

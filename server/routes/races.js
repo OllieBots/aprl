@@ -93,6 +93,28 @@ router.post('/:id/results/import', async (req, res) => {
     await iracingService.importRaceResults(req.params.id, subsession_id);
     await db.run("INSERT INTO activity_log (type, message) VALUES ('result', ?)",
       `Results imported from iRacing subsession #${subsession_id}`);
+    // Notify active league members
+    const race = await db.get(`
+      SELECT r.round_number, r.track_name, s.league_id, l.slug as league_slug
+      FROM races r
+      JOIN seasons s ON r.season_id = s.id
+      JOIN league l ON s.league_id = l.id
+      WHERE r.id = ?
+    `, req.params.id);
+    if (race) {
+      const { notifyMany } = require('../lib/notify');
+      const members = await db.all(
+        "SELECT user_id FROM league_memberships WHERE league_id = ? AND status = 'active' AND user_id IS NOT NULL",
+        race.league_id
+      );
+      await notifyMany(
+        members.map(m => m.user_id),
+        race.league_id,
+        'result',
+        `Race results posted: Round ${race.round_number} — ${race.track_name}`,
+        `/league/${race.league_slug}`
+      );
+    }
     res.json({ success: true });
   } catch (err) {
     res.status(500).json({ error: err.message });

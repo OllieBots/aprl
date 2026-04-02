@@ -108,6 +108,19 @@ async function initDb() {
     created_at BIGINT DEFAULT floor(extract(epoch from now()))::BIGINT
   )`);
 
+  // Notifications
+  await pool.query(`CREATE TABLE IF NOT EXISTS notifications (
+    id SERIAL PRIMARY KEY,
+    user_id INTEGER REFERENCES users(id) ON DELETE CASCADE,
+    league_id INTEGER REFERENCES league(id) ON DELETE SET NULL,
+    type TEXT NOT NULL,
+    message TEXT NOT NULL,
+    link_path TEXT,
+    read BOOLEAN DEFAULT false,
+    created_at BIGINT DEFAULT floor(extract(epoch from now()))::BIGINT
+  )`);
+  await pool.query(`CREATE INDEX IF NOT EXISTS idx_notifications_user_id ON notifications(user_id)`);
+
   // Migrate races table with iRacing session details
   await pool.query(`ALTER TABLE races ADD COLUMN IF NOT EXISTS iracing_league_session_id INTEGER`);
   await pool.query(`ALTER TABLE races ADD COLUMN IF NOT EXISTS weather_temp REAL`);

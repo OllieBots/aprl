@@ -100,3 +100,10 @@ export const userApi = {
   declineInvite: (id) => api.post(`/user/invites/${id}/decline`),
   getInviteCarNumbers: (id) => api.get(`/user/invites/${id}/car-numbers`),
 };
+
+export const notifications = {
+  list: () => api.get('/notifications'),
+  markRead: (id) => api.put(`/notifications/${id}/read`),
+  markAllRead: () => api.put('/notifications/read-all'),
+  remove: (id) => api.delete(`/notifications/${id}`),
+};

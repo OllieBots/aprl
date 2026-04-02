@@ -2,6 +2,7 @@ const express = require('express');
 const router = express.Router();
 const db = require('../db/db');
 const { requireAuth } = require('../middleware/auth');
+const { createNotification } = require('../lib/notify');
 
 async function requireOwner(req, res, leagueId) {
   const league = await db.get('SELECT id FROM league WHERE id = ? AND owner_user_id = ?', leagueId, req.user.id);
@@ -66,6 +67,9 @@ router.post('/:leagueId/invite', requireAuth, async (req, res) => {
         'INSERT INTO league_memberships (user_id, league_id, status, role) VALUES (?, ?, ?, ?)',
         user.id, req.params.leagueId, 'invited', 'driver'
       );
+      const leagueRow = await db.get('SELECT name FROM league WHERE id = ?', req.params.leagueId);
+      await createNotification(user.id, req.params.leagueId, 'invite',
+        `You've been invited to join ${leagueRow?.name || 'a league'}`, '/dashboard');
     } else {
       // No account yet — pre-signup invite
       const existing = await db.get(
@@ -102,6 +106,18 @@ router.put('/:leagueId/:membershipId', requireAuth, async (req, res) => {
       'UPDATE league_memberships SET status = ?, role = ? WHERE id = ?',
       status || membership.status, role || membership.role, req.params.membershipId
     );
+
+    // Notify user if their membership status changed
+    if (membership.user_id) {
+      const leagueRow = await db.get('SELECT name FROM league WHERE id = ?', req.params.leagueId);
+      if (status === 'active' && membership.status !== 'active') {
+        await createNotification(membership.user_id, req.params.leagueId, 'join_approved',
+          `Your membership in ${leagueRow?.name || 'a league'} has been approved!`, '/dashboard');
+      } else if (status === 'rejected' && membership.status !== 'rejected') {
+        await createNotification(membership.user_id, req.params.leagueId, 'join_rejected',
+          `Your request to join ${leagueRow?.name || 'a league'} was not approved`, '/dashboard');
+      }
+    }
 
     // If approving and user account exists, ensure driver record is present
     if (status === 'active' && membership.status !== 'active' && membership.user_id) {

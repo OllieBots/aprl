@@ -2,6 +2,7 @@ import { Outlet, NavLink, useLocation, Navigate, Link } from 'react-router-dom';
 import { useEffect } from 'react';
 import useLeagueStore from '../store/useLeagueStore';
 import { useAuth } from '../context/AuthContext';
+import NotificationBell from './NotificationBell';
 
 const NAV_ITEMS = [
   { to: '/admin', label: 'Dashboard', icon: IconDashboard, exact: true },
@@ -83,6 +84,10 @@ export default function AdminLayout() {
 
         {/* Footer */}
         <div className="px-3 py-4 space-y-2" style={{ borderTop: '1px solid var(--border)' }}>
+          <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', padding: '0 2px', marginBottom: 4 }}>
+            <span style={{ fontSize: 11, color: 'var(--text3)' }}>Notifications</span>
+            <NotificationBell />
+          </div>
           <Link
             to="/dashboard"
             style={{

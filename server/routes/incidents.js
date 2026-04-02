@@ -2,6 +2,7 @@ const express = require('express');
 const router = express.Router({ mergeParams: true });
 const db = require('../db/db');
 const { requireAuth, optionalAuth } = require('../middleware/auth');
+const { createNotification } = require('../lib/notify');
 
 // GET /api/public/leagues/:slug/incidents — list (members only)
 router.get('/', requireAuth, async (req, res) => {
@@ -65,6 +66,24 @@ router.post('/', requireAuth, async (req, res) => {
 
     await db.run("INSERT INTO activity_log (type, message) VALUES ('incident', ?)",
       `Incident report submitted by ${req.user.name} for league ${league.id}`);
+
+    // Notify league admin
+    const leagueInfo = await db.get('SELECT owner_user_id FROM league WHERE id = ?', league.id);
+    if (leagueInfo?.owner_user_id) {
+      await createNotification(leagueInfo.owner_user_id, league.id, 'irt_submitted',
+        `New incident report submitted by ${req.user.name}`, '/admin/irt');
+    }
+    // Notify IRT reviewers (excluding admin to avoid duplicates)
+    const reviewers = await db.all(
+      "SELECT user_id FROM league_memberships WHERE league_id = ? AND irt_reviewer = true AND status = 'active' AND user_id IS NOT NULL",
+      league.id
+    );
+    for (const reviewer of reviewers) {
+      if (reviewer.user_id !== leagueInfo?.owner_user_id) {
+        await createNotification(reviewer.user_id, league.id, 'irt_submitted',
+          `New incident report submitted by ${req.user.name}`, '/irt-review');
+      }
+    }
 
     res.json({ id: result.lastInsertRowid });
   } catch (err) {
