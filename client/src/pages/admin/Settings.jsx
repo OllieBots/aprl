@@ -20,6 +20,7 @@ export default function Settings() {
   const [savingScoring, setSavingScoring] = useState(false);
   const [newSeasonModal, setNewSeasonModal] = useState(false);
   const [saveMsg, setSaveMsg] = useState('');
+  const [saveErr, setSaveErr] = useState('');
 
   useEffect(() => { loadData(); }, []);
 
@@ -49,9 +50,12 @@ export default function Settings() {
   async function saveLeague(e) {
     e?.preventDefault();
     setSavingLeague(true);
+    setSaveErr('');
     try {
       await league.update(leagueData);
       showMsg('Saved');
+    } catch (err) {
+      setSaveErr(err.message);
     } finally {
       setSavingLeague(false);
     }
@@ -82,6 +86,11 @@ export default function Settings() {
         {saveMsg && (
           <div className="px-4 py-2 rounded-md text-sm" style={{ background: 'rgba(34,197,94,0.1)', color: 'var(--green)', border: '1px solid rgba(34,197,94,0.25)' }}>
             {saveMsg}
+          </div>
+        )}
+        {saveErr && (
+          <div className="px-4 py-2 rounded-md text-sm" style={{ background: 'rgba(232,48,42,0.1)', color: 'var(--accent)', border: '1px solid rgba(232,48,42,0.25)' }}>
+            {saveErr}
           </div>
         )}
       </PageHeader>
