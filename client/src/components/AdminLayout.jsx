@@ -82,9 +82,21 @@ export default function AdminLayout() {
         </nav>
 
         {/* Footer */}
-        <div className="px-5 py-4 space-y-2" style={{ borderTop: '1px solid var(--border)' }}>
-          <Link to="/dashboard" style={{ display: 'block', fontSize: 12, color: 'var(--text3)', textDecoration: 'none' }}>← Driver Dashboard</Link>
-          <div className="text-xs" style={{ color: 'var(--text3)' }}>APRL v1.0</div>
+        <div className="px-3 py-4 space-y-2" style={{ borderTop: '1px solid var(--border)' }}>
+          <Link
+            to="/dashboard"
+            style={{
+              display: 'flex', alignItems: 'center', gap: 8, padding: '8px 10px', borderRadius: 7,
+              fontSize: 13, fontWeight: 700, textDecoration: 'none',
+              background: 'rgba(232,48,42,0.1)', color: 'var(--accent)', border: '1px solid rgba(232,48,42,0.25)',
+            }}
+          >
+            <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5" strokeLinecap="round" strokeLinejoin="round">
+              <path d="M3 9l9-7 9 7v11a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2z"/><polyline points="9 22 9 12 15 12 15 22"/>
+            </svg>
+            Driver Dashboard
+          </Link>
+          <div className="text-xs px-2" style={{ color: 'var(--text3)' }}>APRL v1.0</div>
         </div>
       </aside>
 

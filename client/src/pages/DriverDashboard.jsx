@@ -48,7 +48,7 @@ export default function DriverDashboard() {
           {isIRTReviewer && !ownedLeague && (
             <Link
               to="/irt-review"
-              style={{ fontSize: 13, fontWeight: 600, color: 'var(--text2)', textDecoration: 'none', padding: '6px 12px', borderRadius: 6, border: '1px solid var(--border2)' }}
+              style={{ fontSize: 13, fontWeight: 700, color: 'var(--accent)', textDecoration: 'none', padding: '7px 14px', borderRadius: 6, background: 'rgba(232,48,42,0.1)', border: '1px solid rgba(232,48,42,0.3)' }}
             >
               IRT Review
             </Link>
@@ -56,12 +56,12 @@ export default function DriverDashboard() {
           {ownedLeague && (
             <Link
               to="/admin"
-              style={{ fontSize: 13, fontWeight: 600, color: 'var(--text2)', textDecoration: 'none', padding: '6px 12px', borderRadius: 6, border: '1px solid var(--border2)' }}
+              style={{ fontSize: 13, fontWeight: 700, color: 'var(--accent)', textDecoration: 'none', padding: '7px 14px', borderRadius: 6, background: 'rgba(232,48,42,0.1)', border: '1px solid rgba(232,48,42,0.3)' }}
             >
               Admin Panel
             </Link>
           )}
-          <div style={{ fontSize: 13, color: 'var(--text2)' }}>{user?.name}</div>
+          <div style={{ fontSize: 13, color: 'var(--text2)', padding: '0 4px' }}>{user?.name}</div>
           <button
             onClick={logout}
             style={{ fontSize: 13, color: 'var(--text3)', background: 'none', border: 'none', cursor: 'pointer' }}

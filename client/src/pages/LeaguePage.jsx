@@ -112,12 +112,16 @@ export default function LeaguePage() {
           <div style={{ width: 32, height: 32, borderRadius: 7, background: 'var(--accent)', display: 'flex', alignItems: 'center', justifyContent: 'center', color: '#fff', fontWeight: 900, fontSize: 16 }}>A</div>
           <span style={{ fontWeight: 700, fontSize: 15, color: 'var(--text)' }}>APRL</span>
         </Link>
-        <div style={{ display: 'flex', alignItems: 'center', gap: 12 }}>
+        <div style={{ display: 'flex', alignItems: 'center', gap: 10 }}>
           {user ? (
-            <Link to="/dashboard" style={{ fontSize: 13, color: 'var(--text2)', textDecoration: 'none', fontWeight: 600 }}>My Dashboard</Link>
+            <>
+              <Link to="/dashboard" style={{ fontSize: 13, fontWeight: 700, color: 'var(--accent)', textDecoration: 'none', padding: '7px 14px', borderRadius: 6, background: 'rgba(232,48,42,0.1)', border: '1px solid rgba(232,48,42,0.3)' }}>
+                My Dashboard
+              </Link>
+            </>
           ) : (
             <>
-              <Link to="/login" style={{ fontSize: 13, color: 'var(--text2)', textDecoration: 'none', fontWeight: 600 }}>Sign In</Link>
+              <Link to="/login" style={{ fontSize: 13, color: 'var(--text2)', textDecoration: 'none', fontWeight: 600, padding: '7px 14px', borderRadius: 6, border: '1px solid var(--border2)' }}>Sign In</Link>
               <Link to="/signup" style={{ fontSize: 13, color: '#fff', textDecoration: 'none', fontWeight: 700, padding: '7px 14px', borderRadius: 6, background: 'var(--accent)' }}>Sign Up</Link>
             </>
           )}
