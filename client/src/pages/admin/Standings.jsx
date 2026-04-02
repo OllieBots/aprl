@@ -6,7 +6,7 @@ import PosBadge from '../../components/PosBadge';
 import Button from '../../components/Button';
 import Modal from '../../components/Modal';
 import Input from '../../components/Input';
-import { standings, discord } from '../../lib/api';
+import { standings, discord, seasons as seasonsApi } from '../../lib/api';
 
 const CHART_COLORS = ['#e8302a', '#3b82f6', '#22c55e', '#f0b323', '#a855f7', '#06b6d4', '#f97316', '#ec4899'];
 const PLAYOFF_OPTIONS = [3, 4, 5, 6, 8, 10, 12, 16];
@@ -17,6 +17,7 @@ export default function Standings() {
   const [adjustModal, setAdjustModal] = useState(null);
   const [embedModal, setEmbedModal] = useState(false);
   const [discordModal, setDiscordModal] = useState(false);
+  const [closeSeasonModal, setCloseSeasonModal] = useState(false);
   const [loading, setLoading] = useState(true);
 
   // Playoff mode state
@@ -116,6 +117,13 @@ export default function Standings() {
             </div>
           )}
 
+          <Button
+            size="sm"
+            onClick={() => setCloseSeasonModal(true)}
+            style={{ background: 'rgba(232,48,42,0.12)', color: 'var(--accent)', border: '1px solid rgba(232,48,42,0.3)' }}
+          >
+            Archive Season
+          </Button>
           <Button variant="secondary" size="sm" onClick={() => setEmbedModal(true)}>
             <CodeIcon /> Embed
           </Button>
@@ -248,6 +256,7 @@ export default function Standings() {
 
       {embedModal && <EmbedModal onClose={() => setEmbedModal(false)} />}
       {discordModal && <DiscordPostModal onClose={() => setDiscordModal(false)} />}
+      {closeSeasonModal && <CloseSeasonModal onClose={() => setCloseSeasonModal(false)} onDone={() => { setCloseSeasonModal(false); loadData(); }} />}
     </div>
   );
 }
@@ -441,6 +450,86 @@ function DiscordPostModal({ onClose }) {
         <div className="flex justify-end gap-3 pt-1">
           <Button variant="secondary" onClick={onClose} type="button">Close</Button>
           <Button type="submit" disabled={posting}>{posting ? 'Posting…' : 'Post to Discord'}</Button>
+        </div>
+      </form>
+    </Modal>
+  );
+}
+
+function CloseSeasonModal({ onClose, onDone }) {
+  const [form, setForm] = useState({ new_name: '', series: '', car_class: '' });
+  const [saving, setSaving] = useState(false);
+  const [error, setError] = useState('');
+  const [confirmed, setConfirmed] = useState(false);
+
+  async function handleSubmit(e) {
+    e.preventDefault();
+    if (!confirmed) { setError('Check the confirmation box to proceed.'); return; }
+    setSaving(true);
+    setError('');
+    try {
+      await seasonsApi.close(form);
+      onDone();
+    } catch (err) {
+      setError(err.message);
+    } finally {
+      setSaving(false);
+    }
+  }
+
+  return (
+    <Modal title="Archive Season & Start New" onClose={onClose}>
+      <form onSubmit={handleSubmit} className="space-y-4">
+        <div
+          className="px-4 py-3 rounded-md text-sm"
+          style={{ background: 'rgba(232,48,42,0.08)', color: 'var(--text2)', border: '1px solid rgba(232,48,42,0.2)', lineHeight: 1.6 }}
+        >
+          This will <strong style={{ color: 'var(--accent)' }}>archive the current active season</strong> — it will no longer accept new race results. Historical standings and results are preserved in the Archive tab. A new active season will be created immediately.
+        </div>
+
+        <Input
+          label="New Season Name"
+          placeholder="e.g. Season 2 — 2026"
+          value={form.new_name}
+          onChange={e => setForm(f => ({ ...f, new_name: e.target.value }))}
+          required
+        />
+        <Input
+          label="Series (optional)"
+          placeholder="e.g. GT3 Championship"
+          value={form.series}
+          onChange={e => setForm(f => ({ ...f, series: e.target.value }))}
+        />
+        <Input
+          label="Car Class (optional)"
+          placeholder="e.g. GT3"
+          value={form.car_class}
+          onChange={e => setForm(f => ({ ...f, car_class: e.target.value }))}
+        />
+
+        <label style={{ display: 'flex', alignItems: 'flex-start', gap: 10, cursor: 'pointer' }}>
+          <input
+            type="checkbox"
+            checked={confirmed}
+            onChange={e => { setConfirmed(e.target.checked); setError(''); }}
+            style={{ marginTop: 2 }}
+          />
+          <span style={{ fontSize: 13, color: 'var(--text2)' }}>
+            I understand the current season will be archived and a new season will begin.
+          </span>
+        </label>
+
+        {error && (
+          <div className="px-3 py-2 rounded text-sm" style={{ background: 'rgba(232,48,42,0.1)', color: 'var(--accent)', border: '1px solid rgba(232,48,42,0.2)' }}>
+            {error}
+          </div>
+        )}
+
+        <div className="flex justify-end gap-3 pt-2">
+          <Button variant="secondary" onClick={onClose} type="button">Cancel</Button>
+          <Button type="submit" disabled={saving || !confirmed}>
+            {saving ? 'Archiving...' : 'Archive & Start New Season'}
+          </Button>
         </div>
       </form>
     </Modal>

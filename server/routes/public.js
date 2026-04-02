@@ -123,6 +123,116 @@ router.get('/leagues/:slug/results', async (req, res) => {
   }
 });
 
+// GET /api/public/leagues/:slug/seasons — list all seasons with stats
+router.get('/leagues/:slug/seasons', async (req, res) => {
+  try {
+    const league = await db.get('SELECT id FROM league WHERE slug = ?', req.params.slug);
+    if (!league) return res.status(404).json({ error: 'League not found' });
+
+    const seasons = await db.all(`
+      SELECT s.id, s.name, s.series, s.car_class, s.is_active,
+        COUNT(DISTINCT r.id)::int as total_races,
+        COUNT(DISTINCT CASE WHEN r.status = 'completed' THEN r.id END)::int as races_completed,
+        COUNT(DISTINCT d.id)::int as driver_count
+      FROM seasons s
+      LEFT JOIN races r ON r.season_id = s.id
+      LEFT JOIN race_results rr ON rr.race_id = r.id
+      LEFT JOIN drivers d ON d.id = rr.driver_id
+      WHERE s.league_id = ?
+      GROUP BY s.id, s.name, s.series, s.car_class, s.is_active
+      ORDER BY s.id DESC
+    `, league.id);
+
+    // Get champion (top points) for each non-active (archived) season
+    for (const s of seasons) {
+      if (!s.is_active && s.races_completed > 0) {
+        const champ = await db.get(`
+          SELECT d.name, COALESCE(SUM(rr.points_awarded + COALESCE(rr.points_adjustment, 0)), 0)::int as pts
+          FROM drivers d
+          JOIN race_results rr ON d.id = rr.driver_id
+          JOIN races r ON rr.race_id = r.id
+          WHERE r.season_id = ?
+          GROUP BY d.id, d.name
+          ORDER BY pts DESC LIMIT 1
+        `, s.id);
+        s.champion_name = champ?.name ?? null;
+        s.champion_pts = champ?.pts ?? null;
+      }
+    }
+
+    res.json(seasons);
+  } catch (err) {
+    res.status(500).json({ error: err.message });
+  }
+});
+
+// GET /api/public/leagues/:slug/seasons/:seasonId/standings — standings for a specific season
+router.get('/leagues/:slug/seasons/:seasonId/standings', async (req, res) => {
+  try {
+    const league = await db.get('SELECT id FROM league WHERE slug = ?', req.params.slug);
+    if (!league) return res.status(404).json({ error: 'League not found' });
+
+    const season = await db.get('SELECT id, name FROM seasons WHERE id = ? AND league_id = ?', req.params.seasonId, league.id);
+    if (!season) return res.status(404).json({ error: 'Season not found' });
+
+    const standings = await db.all(`
+      SELECT
+        d.id, d.name as driver_name, d.car_number, d.car_model,
+        COUNT(DISTINCT rr.race_id)::int as starts,
+        SUM(CASE WHEN rr.finish_position = 1 THEN 1 ELSE 0 END)::int as wins,
+        SUM(CASE WHEN rr.finish_position <= 3 THEN 1 ELSE 0 END)::int as podiums,
+        COALESCE(SUM(rr.points_awarded + COALESCE(rr.points_adjustment, 0)), 0)::int as total_points,
+        ROUND(AVG(rr.incidents)::numeric, 1)::float as avg_incidents
+      FROM drivers d
+      LEFT JOIN race_results rr ON d.id = rr.driver_id
+      LEFT JOIN races r ON rr.race_id = r.id AND r.season_id = ?
+      WHERE d.status = 'active'
+        AND EXISTS (SELECT 1 FROM race_results rr2 JOIN races r2 ON rr2.race_id = r2.id WHERE rr2.driver_id = d.id AND r2.season_id = ?)
+      GROUP BY d.id, d.name, d.car_number, d.car_model
+      ORDER BY total_points DESC
+    `, season.id, season.id);
+
+    const leader_pts = standings[0]?.total_points ?? 0;
+    res.json({
+      season,
+      standings: standings.map((s, i) => ({ ...s, position: i + 1, gap: i === 0 ? 0 : leader_pts - s.total_points })),
+    });
+  } catch (err) {
+    res.status(500).json({ error: err.message });
+  }
+});
+
+// GET /api/public/leagues/:slug/alltime — all-time stats across all seasons
+router.get('/leagues/:slug/alltime', async (req, res) => {
+  try {
+    const league = await db.get('SELECT id FROM league WHERE slug = ?', req.params.slug);
+    if (!league) return res.status(404).json({ error: 'League not found' });
+
+    const stats = await db.all(`
+      SELECT
+        d.id, d.name as driver_name, d.car_number, d.car_model,
+        COUNT(DISTINCT rr.race_id)::int as starts,
+        SUM(CASE WHEN rr.finish_position = 1 THEN 1 ELSE 0 END)::int as wins,
+        SUM(CASE WHEN rr.finish_position <= 3 THEN 1 ELSE 0 END)::int as podiums,
+        COALESCE(SUM(rr.points_awarded + COALESCE(rr.points_adjustment, 0)), 0)::int as total_points,
+        ROUND(AVG(rr.finish_position)::numeric, 1)::float as avg_finish,
+        ROUND(AVG(rr.incidents)::numeric, 2)::float as avg_incidents,
+        COUNT(DISTINCT r.season_id)::int as seasons_entered
+      FROM drivers d
+      JOIN race_results rr ON d.id = rr.driver_id
+      JOIN races r ON rr.race_id = r.id
+      JOIN seasons s ON r.season_id = s.id
+      WHERE s.league_id = ?
+      GROUP BY d.id, d.name, d.car_number, d.car_model
+      ORDER BY wins DESC, total_points DESC
+    `, league.id);
+
+    res.json(stats);
+  } catch (err) {
+    res.status(500).json({ error: err.message });
+  }
+});
+
 // GET /api/public/drivers?q= — search drivers by name
 router.get('/drivers', async (req, res) => {
   try {

@@ -7,7 +7,7 @@ import Button from '../components/Button';
 import Modal from '../components/Modal';
 import Input from '../components/Input';
 
-const TABS = ['Standings', 'Schedule', 'Results', 'Incidents'];
+const TABS = ['Standings', 'Schedule', 'Results', 'Archive', 'All-Time', 'Incidents'];
 
 export default function LeaguePage() {
   const { slug } = useParams();
@@ -25,6 +25,9 @@ export default function LeaguePage() {
   const [incidentModal, setIncidentModal] = useState(false);
   const [joining, setJoining] = useState(false);
   const [joinMsg, setJoinMsg] = useState('');
+  const [archiveSeasons, setArchiveSeasons] = useState([]);
+  const [selectedSeason, setSelectedSeason] = useState(null); // { season, standings }
+  const [alltime, setAlltime] = useState([]);
 
   useEffect(() => {
     loadLeague();
@@ -35,6 +38,8 @@ export default function LeaguePage() {
     if (tab === 'Schedule' && schedule.length === 0) loadSchedule();
     if (tab === 'Results' && results.length === 0) loadResults();
     if (tab === 'Incidents') loadIncidents();
+    if (tab === 'Archive' && archiveSeasons.length === 0) loadArchive();
+    if (tab === 'All-Time' && alltime.length === 0) loadAllTime();
   }, [tab]);
 
   async function loadLeague() {
@@ -70,6 +75,18 @@ export default function LeaguePage() {
   async function loadResults() {
     const r = await api.get(`/public/leagues/${slug}/results`);
     setResults(r);
+  }
+  async function loadArchive() {
+    const s = await api.get(`/public/leagues/${slug}/seasons`);
+    setArchiveSeasons(s);
+  }
+  async function loadAllTime() {
+    const s = await api.get(`/public/leagues/${slug}/alltime`);
+    setAlltime(s);
+  }
+  async function loadSeasonStandings(season) {
+    const data = await api.get(`/public/leagues/${slug}/seasons/${season.id}/standings`);
+    setSelectedSeason(data);
   }
   async function loadIncidents() {
     if (!user) return;
@@ -174,7 +191,14 @@ export default function LeaguePage() {
                     )}
                     <div>
                       <h1 style={{ fontSize: 22, fontWeight: 800, color: 'var(--text)', margin: '0 0 4px' }}>{league?.name}</h1>
-                      <p style={{ fontSize: 13, color: 'var(--text3)', margin: 0 }}>{league?.season?.series || 'Racing League'} · {league?.season?.name || 'Active Season'}</p>
+                      <div style={{ display: 'flex', alignItems: 'center', gap: 8 }}>
+                        <p style={{ fontSize: 13, color: 'var(--text3)', margin: 0 }}>{league?.season?.series || 'Racing League'} · {league?.season?.name || 'Active Season'}</p>
+                        {league?.season && (
+                          <span style={{ fontSize: 10, fontWeight: 800, padding: '2px 6px', borderRadius: 4, background: 'rgba(34,197,94,0.15)', color: 'var(--green)', textTransform: 'uppercase', letterSpacing: '0.06em', border: '1px solid rgba(34,197,94,0.3)' }}>
+                            Active
+                          </span>
+                        )}
+                      </div>
                     </div>
                   </div>
                   <div style={{ display: 'flex', alignItems: 'center', gap: 16 }}>
@@ -246,6 +270,8 @@ export default function LeaguePage() {
         {tab === 'Standings' && <StandingsTab standings={standings} />}
         {tab === 'Schedule' && <ScheduleTab schedule={schedule} />}
         {tab === 'Results' && <ResultsTab results={results} />}
+        {tab === 'Archive' && <ArchiveTab seasons={archiveSeasons} selectedSeason={selectedSeason} onSelectSeason={loadSeasonStandings} onBack={() => setSelectedSeason(null)} />}
+        {tab === 'All-Time' && <AllTimeTab stats={alltime} />}
         {tab === 'Incidents' && <IncidentsTab incidents={incidents} user={user} />}
       </div>
 
@@ -545,6 +571,151 @@ function IncidentModal({ slug, schedule, onClose, onSubmit }) {
         </div>
       </form>
     </Modal>
+  );
+}
+
+function ArchiveTab({ seasons, selectedSeason, onSelectSeason, onBack }) {
+  if (!seasons.length) return <Empty>No season data yet.</Empty>;
+
+  if (selectedSeason) {
+    const { season, standings } = selectedSeason;
+    const leader_pts = standings[0]?.total_points ?? 0;
+    return (
+      <div>
+        <button
+          onClick={onBack}
+          style={{ fontSize: 13, color: 'var(--text3)', background: 'none', border: 'none', cursor: 'pointer', padding: '0 0 16px', display: 'flex', alignItems: 'center', gap: 6 }}
+        >
+          ← All Seasons
+        </button>
+        <div style={{ marginBottom: 16 }}>
+          <h3 style={{ fontSize: 18, fontWeight: 800, color: 'var(--text)', margin: '0 0 2px' }}>{season.name}</h3>
+          {season.series && <div style={{ fontSize: 13, color: 'var(--text3)' }}>{season.series}</div>}
+        </div>
+        {!standings.length ? (
+          <Empty>No results recorded for this season.</Empty>
+        ) : (
+          <div style={{ background: 'var(--bg2)', border: '1px solid var(--border)', borderRadius: 10, overflow: 'hidden' }}>
+            <table style={{ width: '100%', borderCollapse: 'collapse' }}>
+              <thead>
+                <tr style={{ borderBottom: '1px solid var(--border)' }}>
+                  {['Pos', 'Driver', 'Starts', 'Wins', 'Podiums', 'Avg Inc', 'Points', 'Gap'].map(h => (
+                    <th key={h} style={{ padding: '10px 16px', textAlign: 'left', fontSize: 11, fontWeight: 700, color: 'var(--text3)', textTransform: 'uppercase', letterSpacing: '0.05em' }}>{h}</th>
+                  ))}
+                </tr>
+              </thead>
+              <tbody>
+                {standings.map((s, i) => (
+                  <tr key={s.id} style={{ borderBottom: '1px solid var(--border)' }}>
+                    <td style={{ padding: '10px 16px' }}><PosBadge pos={s.position} /></td>
+                    <td style={{ padding: '10px 16px', fontWeight: 600, fontSize: 14, color: 'var(--text)' }}>
+                      {i === 0 && <span style={{ marginRight: 6 }}>🏆</span>}{s.driver_name}
+                    </td>
+                    <td style={{ padding: '10px 16px', fontSize: 13, color: 'var(--text2)' }}>{s.starts}</td>
+                    <td style={{ padding: '10px 16px', fontSize: 13, fontWeight: 600, color: s.wins > 0 ? 'var(--gold)' : 'var(--text2)' }}>{s.wins}</td>
+                    <td style={{ padding: '10px 16px', fontSize: 13, color: 'var(--text2)' }}>{s.podiums}</td>
+                    <td style={{ padding: '10px 16px', fontSize: 13, color: (s.avg_incidents ?? 0) > 4 ? 'var(--accent)' : 'var(--text2)' }}>{s.avg_incidents != null ? s.avg_incidents.toFixed(1) : '—'}</td>
+                    <td style={{ padding: '10px 16px', fontWeight: 800, fontSize: 18, color: 'var(--text)' }}>{s.total_points}</td>
+                    <td style={{ padding: '10px 16px', fontSize: 13, color: 'var(--text3)' }}>{s.gap > 0 ? `−${s.gap}` : '—'}</td>
+                  </tr>
+                ))}
+              </tbody>
+            </table>
+          </div>
+        )}
+      </div>
+    );
+  }
+
+  return (
+    <div>
+      <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fill, minmax(280px, 1fr))', gap: 14 }}>
+        {seasons.map(s => (
+          <div
+            key={s.id}
+            onClick={() => !s.is_active && onSelectSeason(s)}
+            style={{
+              background: 'var(--bg2)', border: `1px solid ${s.is_active ? 'rgba(34,197,94,0.4)' : 'var(--border)'}`,
+              borderRadius: 10, padding: '18px 20px', cursor: s.is_active ? 'default' : 'pointer',
+              transition: 'border-color 0.15s',
+            }}
+            onMouseEnter={e => { if (!s.is_active) e.currentTarget.style.borderColor = 'var(--border2)'; }}
+            onMouseLeave={e => { e.currentTarget.style.borderColor = s.is_active ? 'rgba(34,197,94,0.4)' : 'var(--border)'; }}
+          >
+            <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', marginBottom: 8 }}>
+              <span style={{ fontSize: 14, fontWeight: 800, color: 'var(--text)' }}>{s.name}</span>
+              {s.is_active ? (
+                <span style={{ fontSize: 10, fontWeight: 800, padding: '2px 7px', borderRadius: 4, background: 'rgba(34,197,94,0.15)', color: 'var(--green)', border: '1px solid rgba(34,197,94,0.3)', textTransform: 'uppercase', letterSpacing: '0.06em' }}>
+                  Active
+                </span>
+              ) : (
+                <span style={{ fontSize: 10, fontWeight: 600, color: 'var(--text3)', textTransform: 'uppercase', letterSpacing: '0.05em' }}>
+                  Archived →
+                </span>
+              )}
+            </div>
+            {s.series && <div style={{ fontSize: 12, color: 'var(--accent)', marginBottom: 10 }}>{s.series}</div>}
+            <div style={{ display: 'flex', gap: 20 }}>
+              <div>
+                <div style={{ fontSize: 16, fontWeight: 700, color: 'var(--text)' }}>{s.races_completed}</div>
+                <div style={{ fontSize: 10, color: 'var(--text3)', textTransform: 'uppercase', letterSpacing: '0.05em' }}>Races</div>
+              </div>
+              <div>
+                <div style={{ fontSize: 16, fontWeight: 700, color: 'var(--text)' }}>{s.driver_count}</div>
+                <div style={{ fontSize: 10, color: 'var(--text3)', textTransform: 'uppercase', letterSpacing: '0.05em' }}>Drivers</div>
+              </div>
+              {s.champion_name && (
+                <div style={{ marginLeft: 'auto', textAlign: 'right' }}>
+                  <div style={{ fontSize: 13, fontWeight: 700, color: 'var(--gold)' }}>🏆 {s.champion_name}</div>
+                  <div style={{ fontSize: 10, color: 'var(--text3)', textTransform: 'uppercase', letterSpacing: '0.05em' }}>{s.champion_pts} pts</div>
+                </div>
+              )}
+            </div>
+          </div>
+        ))}
+      </div>
+    </div>
+  );
+}
+
+function AllTimeTab({ stats }) {
+  if (!stats.length) return <Empty>No all-time stats yet.</Empty>;
+  return (
+    <div>
+      <div style={{ marginBottom: 14, fontSize: 13, color: 'var(--text3)' }}>
+        Aggregated across all completed seasons · {stats.length} drivers
+      </div>
+      <div style={{ background: 'var(--bg2)', border: '1px solid var(--border)', borderRadius: 10, overflow: 'hidden' }}>
+        <table style={{ width: '100%', borderCollapse: 'collapse' }}>
+          <thead>
+            <tr style={{ borderBottom: '1px solid var(--border)' }}>
+              {['Rank', 'Driver', 'Seasons', 'Starts', 'Wins', 'Podiums', 'Avg Finish', 'Avg Inc', 'Total Pts'].map(h => (
+                <th key={h} style={{ padding: '10px 14px', textAlign: 'left', fontSize: 11, fontWeight: 700, color: 'var(--text3)', textTransform: 'uppercase', letterSpacing: '0.05em', whiteSpace: 'nowrap' }}>{h}</th>
+              ))}
+            </tr>
+          </thead>
+          <tbody>
+            {stats.map((s, i) => (
+              <tr key={s.id} style={{ borderBottom: '1px solid var(--border)' }}>
+                <td style={{ padding: '10px 14px' }}><PosBadge pos={i + 1} /></td>
+                <td style={{ padding: '10px 14px', fontWeight: 700, fontSize: 14, color: 'var(--text)', whiteSpace: 'nowrap' }}>
+                  {i === 0 && <span style={{ marginRight: 6 }}>🏆</span>}{s.driver_name}
+                </td>
+                <td style={{ padding: '10px 14px', fontSize: 13, color: 'var(--text2)' }}>{s.seasons_entered}</td>
+                <td style={{ padding: '10px 14px', fontSize: 13, color: 'var(--text2)' }}>{s.starts}</td>
+                <td style={{ padding: '10px 14px', fontSize: 13, fontWeight: 600, color: s.wins > 0 ? 'var(--gold)' : 'var(--text2)' }}>{s.wins}</td>
+                <td style={{ padding: '10px 14px', fontSize: 13, color: 'var(--text2)' }}>{s.podiums}</td>
+                <td style={{ padding: '10px 14px', fontSize: 13, color: 'var(--text2)' }}>{s.avg_finish ?? '—'}</td>
+                <td style={{ padding: '10px 14px', fontSize: 13, color: (s.avg_incidents ?? 0) > 4 ? 'var(--accent)' : 'var(--text2)' }}>
+                  {s.avg_incidents != null ? s.avg_incidents.toFixed(2) : '—'}
+                </td>
+                <td style={{ padding: '10px 14px', fontWeight: 800, fontSize: 17, color: 'var(--text)' }}>{s.total_points}</td>
+              </tr>
+            ))}
+          </tbody>
+        </table>
+      </div>
+    </div>
   );
 }
 

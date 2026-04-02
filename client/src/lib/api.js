@@ -25,6 +25,7 @@ export const seasons = {
   list: () => api.get('/seasons'),
   create: (data) => api.post('/seasons', data),
   update: (id, data) => api.put(`/seasons/${id}`, data),
+  close: (data) => api.post('/seasons/close', data),
 };
 
 export const drivers = {
