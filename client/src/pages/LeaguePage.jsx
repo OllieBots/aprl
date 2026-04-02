@@ -124,7 +124,7 @@ export default function LeaguePage() {
   return (
     <div style={{ minHeight: '100vh', background: 'var(--bg)' }}>
       {/* Nav */}
-      <header style={{ background: 'var(--bg2)', borderBottom: '1px solid var(--border)', padding: '0 32px', height: 56, display: 'flex', alignItems: 'center', justifyContent: 'space-between' }}>
+      <header style={{ background: 'var(--bg2)', borderBottom: '1px solid var(--border)', padding: '0 20px', height: 56, display: 'flex', alignItems: 'center', justifyContent: 'space-between' }}>
         <Link to="/" style={{ display: 'flex', alignItems: 'center', gap: 10, textDecoration: 'none' }}>
           <div style={{ width: 32, height: 32, borderRadius: 7, background: 'var(--accent)', display: 'flex', alignItems: 'center', justifyContent: 'center', color: '#fff', fontWeight: 900, fontSize: 16 }}>A</div>
           <span style={{ fontWeight: 700, fontSize: 15, color: 'var(--text)' }}>APRL</span>
@@ -175,8 +175,8 @@ export default function LeaguePage() {
               {!hasBanner && (
                 <div style={{ height: 3, background: `linear-gradient(90deg, ${primary}, ${secondary})`, borderRadius: 2, marginBottom: 20 }} />
               )}
-              <div style={{ maxWidth: 960, margin: '0 auto' }}>
-                <div style={{ display: 'flex', alignItems: 'flex-start', justifyContent: 'space-between', gap: 20, flexWrap: 'wrap' }}>
+              <div style={{ maxWidth: 960, margin: '0 auto', padding: '0 4px' }}>
+                <div style={{ display: 'flex', alignItems: 'flex-start', justifyContent: 'space-between', gap: 16, flexWrap: 'wrap' }}>
                   <div style={{ display: 'flex', alignItems: 'center', gap: 16 }}>
                     {league?.logo_url ? (
                       <img
@@ -233,7 +233,7 @@ export default function LeaguePage() {
 
             {/* Tab bar */}
             <div style={{ background: 'var(--bg2)', borderBottom: '1px solid var(--border)' }}>
-              <div style={{ maxWidth: 960, margin: '0 auto', display: 'flex', padding: '0 32px', gap: 2 }}>
+              <div style={{ maxWidth: 960, margin: '0 auto', display: 'flex', padding: '0 16px', gap: 2, overflowX: 'auto', scrollbarWidth: 'none' }}>
                 {TABS.filter(t => t !== 'Incidents' || isMember || user?.ownedLeague?.slug === slug).map(t => (
                   <button
                     key={t}
@@ -266,7 +266,7 @@ export default function LeaguePage() {
       })()}
 
       {/* Tab content */}
-      <div style={{ maxWidth: 960, margin: '0 auto', padding: '28px 32px' }}>
+      <div style={{ maxWidth: 960, margin: '0 auto', padding: '20px 16px' }}>
         {tab === 'Standings' && <StandingsTab standings={standings} />}
         {tab === 'Schedule' && <ScheduleTab schedule={schedule} />}
         {tab === 'Results' && <ResultsTab results={results} />}
@@ -290,8 +290,8 @@ export default function LeaguePage() {
 function StandingsTab({ standings }) {
   if (!standings.length) return <Empty>No standings yet.</Empty>;
   return (
-    <div style={{ background: 'var(--bg2)', border: '1px solid var(--border)', borderRadius: 10, overflow: 'hidden' }}>
-      <table style={{ width: '100%', borderCollapse: 'collapse' }}>
+    <div style={{ background: 'var(--bg2)', border: '1px solid var(--border)', borderRadius: 10, overflow: 'auto' }}>
+      <table style={{ width: '100%', borderCollapse: 'collapse', minWidth: 560 }}>
         <thead>
           <tr style={{ borderBottom: '1px solid var(--border)' }}>
             {['Pos', 'Driver', 'Car', 'Wins', 'Podiums', 'Avg Inc', 'Points', 'Gap'].map(h => (

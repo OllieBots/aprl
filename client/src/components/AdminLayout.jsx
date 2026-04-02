@@ -1,5 +1,5 @@
-import { Outlet, NavLink, useLocation, Navigate, Link } from 'react-router-dom';
-import { useEffect } from 'react';
+import { Outlet, NavLink, useLocation, Navigate, Link, useNavigate } from 'react-router-dom';
+import { useEffect, useState } from 'react';
 import useLeagueStore from '../store/useLeagueStore';
 import { useAuth } from '../context/AuthContext';
 import NotificationBell from './NotificationBell';
@@ -22,6 +22,7 @@ const CONFIG_ITEMS = [
 export default function AdminLayout() {
   const { league, fetchLeague, fetchSeasons } = useLeagueStore();
   const { user, ownedLeague, loading } = useAuth();
+  const [sidebarOpen, setSidebarOpen] = useState(false);
 
   useEffect(() => {
     fetchLeague();
@@ -29,7 +30,6 @@ export default function AdminLayout() {
   }, []);
 
   if (loading) return null;
-
   if (!user) return <Navigate to="/login" replace />;
 
   if (!ownedLeague) {
@@ -43,11 +43,37 @@ export default function AdminLayout() {
   }
 
   return (
-    <div className="flex h-screen overflow-hidden" style={{ background: 'var(--bg)' }}>
+    <div className="flex h-screen overflow-hidden" style={{ background: 'var(--bg)', position: 'relative' }}>
+      {/* Mobile overlay */}
+      {sidebarOpen && (
+        <div
+          onClick={() => setSidebarOpen(false)}
+          style={{ position: 'fixed', inset: 0, background: 'rgba(0,0,0,0.6)', zIndex: 40 }}
+        />
+      )}
+
+      {/* Mobile top bar — only rendered on small screens via CSS */}
+      <div style={{
+        display: 'none', // shown via media query below
+        position: 'fixed', top: 0, left: 0, right: 0, height: 52, zIndex: 50,
+        background: 'var(--bg2)', borderBottom: '1px solid var(--border)',
+        alignItems: 'center', justifyContent: 'space-between', padding: '0 16px',
+      }} className="admin-topbar">
+        <button onClick={() => setSidebarOpen(o => !o)} style={{ background: 'none', border: 'none', cursor: 'pointer', color: 'var(--text)', padding: 6 }}>
+          <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5"><line x1="3" y1="6" x2="21" y2="6"/><line x1="3" y1="12" x2="21" y2="12"/><line x1="3" y1="18" x2="21" y2="18"/></svg>
+        </button>
+        <span style={{ fontFamily: '"Barlow Condensed",sans-serif', fontWeight: 700, fontSize: 15, textTransform: 'uppercase', letterSpacing: '0.08em', color: 'var(--text)' }}>
+          {league?.name ? abbreviate(league.name) : 'APRL'} Admin
+        </span>
+        <NotificationBell />
+      </div>
+
       {/* Sidebar */}
       <aside
-        className="flex flex-col w-56 flex-shrink-0 h-full overflow-y-auto"
-        style={{ background: 'var(--bg2)', borderRight: '1px solid var(--border)' }}
+        className="flex flex-col flex-shrink-0 h-full overflow-y-auto admin-sidebar"
+        data-open={sidebarOpen}
+        style={{ width: 224, background: 'var(--bg2)', borderRight: '1px solid var(--border)' }}
+        onClick={() => { if (window.innerWidth < 641) setSidebarOpen(false); }}
       >
         {/* Logo */}
         <div className="flex items-center gap-3 px-5 py-5" style={{ borderBottom: '1px solid var(--border)' }}>
@@ -107,6 +133,7 @@ export default function AdminLayout() {
 
       {/* Main content */}
       <main className="flex-1 overflow-y-auto" style={{ background: 'var(--bg)' }}>
+        <div className="admin-main-spacer" />
         <Outlet />
       </main>
     </div>

@@ -66,6 +66,66 @@ input:focus, select:focus, textarea:focus {
 /* Transitions */
 button, a { transition: all 0.15s ease; }
 
+/* ── Mobile helpers ──────────────────────────────────────────────────────── */
+/* Responsive grid helpers */
+@media (max-width: 900px) {
+  .grid-cols-3 { grid-template-columns: repeat(2, 1fr) !important; }
+}
+@media (max-width: 600px) {
+  .grid-cols-3 { grid-template-columns: 1fr !important; }
+  .grid-cols-2 { grid-template-columns: 1fr !important; }
+}
+
+/* Hide on mobile */
+@media (max-width: 640px) {
+  .hide-mobile { display: none !important; }
+}
+/* Hide on desktop */
+@media (min-width: 641px) {
+  .hide-desktop { display: none !important; }
+}
+
+/* Mobile padding */
+@media (max-width: 640px) {
+  .px-8 { padding-left: 1rem !important; padding-right: 1rem !important; }
+  .py-16 { padding-top: 2.5rem !important; padding-bottom: 2.5rem !important; }
+  .py-20 { padding-top: 3rem !important; padding-bottom: 3rem !important; }
+}
+
+/* Admin sidebar — desktop always visible, mobile drawer */
+@media (max-width: 640px) {
+  .admin-sidebar {
+    position: fixed !important;
+    top: 0; left: 0; bottom: 0;
+    z-index: 45;
+    transform: translateX(-100%);
+    transition: transform 0.22s cubic-bezier(0.4, 0, 0.2, 1);
+    width: 224px !important;
+  }
+  .admin-sidebar[data-open="true"] {
+    transform: translateX(0);
+  }
+  .admin-topbar {
+    display: flex !important;
+  }
+  .admin-main-spacer {
+    height: 52px;
+  }
+}
+
+/* Driver profile: stack columns on mobile */
+@media (max-width: 700px) {
+  .driver-profile-grid {
+    grid-template-columns: 1fr !important;
+  }
+}
+
+/* Pulse animation for loading */
+@keyframes pulse {
+  0%, 100% { opacity: 1; }
+  50% { opacity: 0.4; }
+}
+
 /* Position badge */
 .pos-badge {
   display: inline-flex;

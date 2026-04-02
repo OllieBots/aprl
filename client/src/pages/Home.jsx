@@ -60,65 +60,58 @@ export default function Home() {
 // ─── Nav ──────────────────────────────────────────────────────────────────────
 
 function Nav() {
+  const [menuOpen, setMenuOpen] = useState(false);
   return (
-    <nav
-      className="sticky top-0 z-40"
-      style={{ background: 'var(--bg2)', borderBottom: '1px solid var(--border)' }}
-    >
-      <div className="max-w-6xl mx-auto px-8 h-14 flex items-center justify-between">
+    <nav className="sticky top-0 z-40" style={{ background: 'var(--bg2)', borderBottom: '1px solid var(--border)' }}>
+      <div style={{ maxWidth: 1152, margin: '0 auto', padding: '0 24px', height: 56, display: 'flex', alignItems: 'center', justifyContent: 'space-between' }}>
         {/* Logo */}
-        <Link to="/" className="flex items-center gap-3 no-underline">
-          <div
-            className="flex items-center justify-center w-8 h-8 rounded font-display font-bold text-sm text-white flex-shrink-0"
-            style={{ background: 'var(--accent)' }}
-          >
-            A
-          </div>
-          <span
-            className="font-display font-bold text-base uppercase tracking-wider"
-            style={{ color: 'var(--text)', letterSpacing: '0.08em' }}
-          >
-            APRL
-          </span>
+        <Link to="/" style={{ display: 'flex', alignItems: 'center', gap: 10, textDecoration: 'none' }}>
+          <div style={{ width: 32, height: 32, borderRadius: 6, background: 'var(--accent)', display: 'flex', alignItems: 'center', justifyContent: 'center', color: '#fff', fontWeight: 900, fontSize: 14, flexShrink: 0 }}>A</div>
+          <span style={{ fontFamily: '"Barlow Condensed",sans-serif', fontWeight: 700, fontSize: 15, textTransform: 'uppercase', letterSpacing: '0.08em', color: 'var(--text)' }}>APRL</span>
         </Link>
 
-        {/* Nav links */}
-        <div className="flex items-center gap-8">
-          {[
-            { label: 'Leagues', href: '#leagues' },
-            { label: 'Drivers', href: '#drivers' },
-            { label: 'News',    href: '#news' },
-          ].map(item => (
-            <a
-              key={item.label}
-              href={item.href}
-              className="text-sm font-semibold"
-              style={{ color: 'var(--text2)', textDecoration: 'none' }}
+        {/* Desktop nav links */}
+        <div className="hide-mobile" style={{ display: 'flex', alignItems: 'center', gap: 32 }}>
+          {[{ label: 'Leagues', href: '#leagues' }, { label: 'Drivers', href: '#drivers' }, { label: 'News', href: '#news' }].map(item => (
+            <a key={item.label} href={item.href} style={{ fontSize: 13, fontWeight: 600, color: 'var(--text2)', textDecoration: 'none' }}
               onMouseEnter={e => e.currentTarget.style.color = 'var(--text)'}
               onMouseLeave={e => e.currentTarget.style.color = 'var(--text2)'}
-            >
-              {item.label}
-            </a>
+            >{item.label}</a>
           ))}
         </div>
 
-        <div style={{ display: 'flex', alignItems: 'center', gap: 10 }}>
-          <Link
-            to="/login"
-            className="px-4 py-2 rounded-md text-sm font-semibold"
-            style={{ color: 'var(--text2)', textDecoration: 'none', border: '1px solid var(--border2)' }}
-          >
-            Sign In
-          </Link>
-          <Link
-            to="/signup"
-            className="flex items-center gap-2 px-4 py-2 rounded-md text-sm font-semibold"
-            style={{ background: 'var(--accent)', color: 'white', textDecoration: 'none' }}
-          >
-            Join APRL
-          </Link>
+        {/* Desktop CTA */}
+        <div className="hide-mobile" style={{ display: 'flex', alignItems: 'center', gap: 10 }}>
+          <Link to="/login" style={{ padding: '7px 16px', borderRadius: 6, fontSize: 13, fontWeight: 600, color: 'var(--text2)', textDecoration: 'none', border: '1px solid var(--border2)' }}>Sign In</Link>
+          <Link to="/signup" style={{ padding: '7px 16px', borderRadius: 6, fontSize: 13, fontWeight: 700, color: '#fff', textDecoration: 'none', background: 'var(--accent)' }}>Join APRL</Link>
         </div>
+
+        {/* Mobile hamburger */}
+        <button
+          className="hide-desktop"
+          onClick={() => setMenuOpen(o => !o)}
+          style={{ background: 'none', border: 'none', cursor: 'pointer', color: 'var(--text)', padding: 6 }}
+        >
+          {menuOpen ? (
+            <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5"><line x1="18" y1="6" x2="6" y2="18"/><line x1="6" y1="6" x2="18" y2="18"/></svg>
+          ) : (
+            <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5"><line x1="3" y1="6" x2="21" y2="6"/><line x1="3" y1="12" x2="21" y2="12"/><line x1="3" y1="18" x2="21" y2="18"/></svg>
+          )}
+        </button>
       </div>
+
+      {/* Mobile dropdown */}
+      {menuOpen && (
+        <div className="hide-desktop" style={{ background: 'var(--bg2)', borderTop: '1px solid var(--border)', padding: '12px 24px 16px', display: 'flex', flexDirection: 'column', gap: 12 }}>
+          {[{ label: 'Leagues', href: '#leagues' }, { label: 'Drivers', href: '#drivers' }, { label: 'News', href: '#news' }].map(item => (
+            <a key={item.label} href={item.href} onClick={() => setMenuOpen(false)} style={{ fontSize: 15, fontWeight: 600, color: 'var(--text2)', textDecoration: 'none', padding: '4px 0' }}>{item.label}</a>
+          ))}
+          <div style={{ display: 'flex', gap: 8, paddingTop: 4 }}>
+            <Link to="/login" onClick={() => setMenuOpen(false)} style={{ flex: 1, padding: '9px 0', textAlign: 'center', borderRadius: 6, fontSize: 13, fontWeight: 600, color: 'var(--text2)', textDecoration: 'none', border: '1px solid var(--border2)' }}>Sign In</Link>
+            <Link to="/signup" onClick={() => setMenuOpen(false)} style={{ flex: 1, padding: '9px 0', textAlign: 'center', borderRadius: 6, fontSize: 13, fontWeight: 700, color: '#fff', textDecoration: 'none', background: 'var(--accent)' }}>Join APRL</Link>
+          </div>
+        </div>
+      )}
     </nav>
   );
 }
@@ -157,55 +150,46 @@ function Hero() {
 
         <h1
           className="font-display font-bold uppercase leading-none mb-5"
-          style={{ fontSize: '4.5rem', color: 'var(--text)', letterSpacing: '0.03em' }}
+          style={{ fontSize: 'clamp(2.4rem, 7vw, 4.5rem)', color: 'var(--text)', letterSpacing: '0.03em' }}
         >
           Run your league.<br />
           <span style={{ color: 'var(--accent)' }}>The right way.</span>
         </h1>
 
-        <p className="text-lg max-w-2xl mx-auto mb-10" style={{ color: 'var(--text2)', lineHeight: 1.7 }}>
+        <p style={{ fontSize: 'clamp(14px, 2.5vw, 18px)', maxWidth: 560, margin: '0 auto 2.5rem', color: 'var(--text2)', lineHeight: 1.7 }}>
           APRL gives iRacing league admins a full management suite — standings, results,
           Discord integration, and driver rosters — all in one place.
         </p>
 
-        <div className="flex items-center justify-center gap-4">
+        <div style={{ display: 'flex', flexWrap: 'wrap', alignItems: 'center', justifyContent: 'center', gap: 12 }}>
           <Link
             to="/admin"
-            className="inline-flex items-center gap-2 px-6 py-3 rounded-md font-semibold text-base"
-            style={{ background: 'var(--accent)', color: 'white', textDecoration: 'none' }}
+            style={{ display: 'inline-flex', alignItems: 'center', gap: 8, padding: '11px 24px', borderRadius: 7, fontWeight: 700, fontSize: 14, background: 'var(--accent)', color: '#fff', textDecoration: 'none' }}
           >
             Create your league
-            <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5">
+            <svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5">
               <line x1="5" y1="12" x2="19" y2="12"/><polyline points="12 5 19 12 12 19"/>
             </svg>
           </Link>
           <a
             href="#leagues"
-            className="inline-flex items-center gap-2 px-6 py-3 rounded-md font-semibold text-base"
-            style={{ background: 'var(--bg3)', color: 'var(--text)', border: '1px solid var(--border2)', textDecoration: 'none' }}
+            style={{ display: 'inline-flex', alignItems: 'center', gap: 8, padding: '11px 24px', borderRadius: 7, fontWeight: 700, fontSize: 14, background: 'var(--bg3)', color: 'var(--text)', border: '1px solid var(--border2)', textDecoration: 'none' }}
           >
             Browse open leagues
           </a>
         </div>
 
         {/* Platform stats */}
-        <div className="flex items-center justify-center gap-12 mt-14">
+        <div style={{ display: 'flex', flexWrap: 'wrap', alignItems: 'center', justifyContent: 'center', gap: '20px 40px', marginTop: 48 }}>
           {[
             { value: '12',  label: 'Active Leagues' },
             { value: '340', label: 'Registered Drivers' },
             { value: '180', label: 'Races Completed' },
             { value: '24',  label: 'Seasons Run' },
           ].map(s => (
-            <div key={s.label} className="text-center">
-              <div
-                className="font-display font-bold text-3xl"
-                style={{ color: 'var(--text)', letterSpacing: '0.02em' }}
-              >
-                {s.value}
-              </div>
-              <div className="text-xs uppercase tracking-widest mt-1" style={{ color: 'var(--text3)' }}>
-                {s.label}
-              </div>
+            <div key={s.label} style={{ textAlign: 'center' }}>
+              <div style={{ fontFamily: '"Barlow Condensed",sans-serif', fontWeight: 700, fontSize: 28, color: 'var(--text)', letterSpacing: '0.02em' }}>{s.value}</div>
+              <div style={{ fontSize: 10, textTransform: 'uppercase', letterSpacing: '0.08em', color: 'var(--text3)', marginTop: 3 }}>{s.label}</div>
             </div>
           ))}
         </div>
@@ -223,14 +207,11 @@ function SponsorBanner({ sponsors, slim = false }) {
       style={{ background: 'var(--bg3)', borderBottom: '1px solid var(--border)' }}
     >
       <div className={`max-w-6xl mx-auto px-8 ${slim ? 'py-4' : 'py-6'}`}>
-        <div className="flex items-center gap-6">
-          <span
-            className="text-xs uppercase tracking-widest font-semibold flex-shrink-0"
-            style={{ color: 'var(--text3)' }}
-          >
+        <div style={{ display: 'flex', alignItems: 'center', gap: 16, flexWrap: 'wrap' }}>
+          <span className="text-xs uppercase tracking-widest font-semibold flex-shrink-0" style={{ color: 'var(--text3)' }}>
             Sponsors
           </span>
-          <div className="flex items-center gap-4 flex-1">
+          <div style={{ display: 'flex', alignItems: 'center', gap: 10, flex: 1, flexWrap: 'wrap' }}>
             {sponsors.map(s => (
               <div
                 key={s.id}
@@ -290,7 +271,7 @@ function OpenRecruitment({ leagues }) {
             No leagues are currently recruiting. Check back soon.
           </div>
         ) : (
-          <div className="grid grid-cols-3 gap-5">
+          <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fill, minmax(280px, 1fr))', gap: 20 }}>
             {leagues.map(league => (
               <LeagueCard key={league.id} league={league} />
             ))}
@@ -522,7 +503,7 @@ function DriverSearch() {
           <p style={{ fontSize: 13, color: 'var(--text3)' }}>No drivers found for "{query}"</p>
         )}
         {results.length > 0 && (
-          <div className="grid grid-cols-3 gap-4">
+          <div className="grid grid-cols-3 gap-4" style={{ gridTemplateColumns: 'repeat(auto-fill, minmax(240px, 1fr))' }}>
             {results.map(d => (
               <div
                 key={d.id}
@@ -597,7 +578,7 @@ function NewsSection({ articles }) {
           </h2>
         </div>
 
-        <div className="grid grid-cols-3 gap-5">
+        <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fill, minmax(260px, 1fr))', gap: 20 }}>
           {articles.map((article, i) => (
             <NewsCard key={article.id} article={article} featured={i === 0} />
           ))}
@@ -643,7 +624,7 @@ function NewsCard({ article, featured }) {
 function Footer() {
   return (
     <footer style={{ borderTop: '1px solid var(--border)' }}>
-      <div className="max-w-6xl mx-auto px-8 py-10 flex items-center justify-between">
+      <div style={{ maxWidth: 1152, margin: '0 auto', padding: '32px 24px', display: 'flex', flexWrap: 'wrap', alignItems: 'center', justifyContent: 'space-between', gap: 16 }}>
         <div className="flex items-center gap-3">
           <div
             className="flex items-center justify-center w-7 h-7 rounded font-display font-bold text-xs text-white"

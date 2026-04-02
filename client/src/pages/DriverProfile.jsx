@@ -73,7 +73,7 @@ export default function DriverProfile() {
       {/* Content */}
       <div style={{ maxWidth: 860, margin: '0 auto', padding: '28px 24px' }}>
         {/* Stats grid */}
-        <div style={{ display: 'grid', gridTemplateColumns: 'repeat(6, 1fr)', gap: 12, marginBottom: 28 }}>
+        <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fill, minmax(110px, 1fr))', gap: 12, marginBottom: 28 }}>
           {[
             { label: 'Starts',    value: stats?.starts ?? 0 },
             { label: 'Wins',      value: stats?.wins ?? 0 },
@@ -96,7 +96,7 @@ export default function DriverProfile() {
           ))}
         </div>
 
-        <div style={{ display: 'grid', gridTemplateColumns: leagues.length > 0 ? '1fr 300px' : '1fr', gap: 20 }}>
+        <div className="driver-profile-grid" style={{ display: 'grid', gridTemplateColumns: leagues.length > 0 ? 'minmax(0,1fr) minmax(220px, 280px)' : '1fr', gap: 20, alignItems: 'start' }}>
           {/* Recent results */}
           <section>
             <h2 style={{ fontSize: 14, fontWeight: 700, color: 'var(--text3)', textTransform: 'uppercase', letterSpacing: '0.08em', margin: '0 0 12px' }}>
@@ -105,8 +105,8 @@ export default function DriverProfile() {
             {recentResults.length === 0 ? (
               <EmptyState text="No race results yet" />
             ) : (
-              <div style={{ background: 'var(--bg2)', borderRadius: 10, border: '1px solid var(--border)', overflow: 'hidden' }}>
-                <table style={{ width: '100%', borderCollapse: 'collapse', fontSize: 13 }}>
+              <div style={{ background: 'var(--bg2)', borderRadius: 10, border: '1px solid var(--border)', overflowX: 'auto' }}>
+                <table style={{ width: '100%', borderCollapse: 'collapse', fontSize: 13, minWidth: 380 }}>
                   <thead>
                     <tr style={{ borderBottom: '1px solid var(--border)' }}>
                       {['Round', 'Track', 'Finish', 'Points', 'Inc'].map(h => (

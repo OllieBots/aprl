@@ -45,7 +45,7 @@ export default function DriverDashboard() {
           <div style={{ width: 32, height: 32, borderRadius: 7, background: 'var(--accent)', display: 'flex', alignItems: 'center', justifyContent: 'center', color: '#fff', fontWeight: 900, fontSize: 16 }}>A</div>
           <span style={{ fontWeight: 700, fontSize: 15, color: 'var(--text)' }}>APRL</span>
         </Link>
-        <div style={{ display: 'flex', alignItems: 'center', gap: 16 }}>
+        <div style={{ display: 'flex', alignItems: 'center', gap: 10, flexWrap: 'wrap' }}>
           {isIRTReviewer && !ownedLeague && (
             <Link
               to="/irt-review"
@@ -90,7 +90,7 @@ export default function DriverDashboard() {
 
         {/* Career stats */}
         {data?.stats && (
-          <div style={{ display: 'grid', gridTemplateColumns: 'repeat(5, 1fr)', gap: 12, marginBottom: 32 }}>
+          <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fill, minmax(130px, 1fr))', gap: 12, marginBottom: 32 }}>
             {[
               { label: 'Starts', value: data.stats.starts ?? 0 },
               { label: 'Wins', value: data.stats.wins ?? 0, highlight: data.stats.wins > 0 },
@@ -112,7 +112,7 @@ export default function DriverDashboard() {
             <h2 style={{ fontSize: 13, fontWeight: 700, color: 'var(--text3)', textTransform: 'uppercase', letterSpacing: '0.06em', marginBottom: 12 }}>Pending Invites</h2>
             <div style={{ display: 'flex', flexDirection: 'column', gap: 10 }}>
               {data.invites.map(invite => (
-                <div key={invite.id} style={{ background: 'var(--bg2)', border: '1px solid rgba(240,179,35,0.3)', borderRadius: 8, padding: '14px 18px', display: 'flex', alignItems: 'center', justifyContent: 'space-between' }}>
+                <div key={invite.id} style={{ background: 'var(--bg2)', border: '1px solid rgba(240,179,35,0.3)', borderRadius: 8, padding: '14px 18px', display: 'flex', alignItems: 'center', justifyContent: 'space-between', flexWrap: 'wrap', gap: 10 }}>
                   <div>
                     <span style={{ fontWeight: 600, color: 'var(--text)', fontSize: 14 }}>{invite.league_name}</span>
                     <span style={{ marginLeft: 10, fontSize: 12, color: 'var(--gold)', fontWeight: 600, padding: '2px 8px', background: 'rgba(240,179,35,0.1)', borderRadius: 4 }}>Invited</span>
@@ -197,7 +197,7 @@ export default function DriverDashboard() {
             <h2 style={{ fontSize: 13, fontWeight: 700, color: 'var(--text3)', textTransform: 'uppercase', letterSpacing: '0.06em', marginBottom: 12 }}>Upcoming Races</h2>
             <div style={{ background: 'var(--bg2)', border: '1px solid var(--border)', borderRadius: 8, overflow: 'hidden' }}>
               {data.upcomingRaces.map((race, i) => (
-                <div key={race.id} style={{ display: 'flex', alignItems: 'center', gap: 16, padding: '13px 18px', borderBottom: i < data.upcomingRaces.length - 1 ? '1px solid var(--border)' : 'none' }}>
+                <div key={race.id} style={{ display: 'flex', alignItems: 'center', gap: 12, padding: '13px 18px', borderBottom: i < data.upcomingRaces.length - 1 ? '1px solid var(--border)' : 'none', flexWrap: 'wrap' }}>
                   <span style={{ fontWeight: 800, color: 'var(--accent)', fontSize: 15, minWidth: 32 }}>R{race.round_number}</span>
                   <div style={{ flex: 1 }}>
                     <span style={{ fontWeight: 600, fontSize: 14, color: 'var(--text)' }}>{race.track_name}</span>
