@@ -18,6 +18,7 @@ import DiscordConfig from './pages/admin/DiscordConfig';
 import Settings from './pages/admin/Settings';
 import IRT from './pages/admin/IRT';
 import IRTReview from './pages/IRTReview';
+import DriverProfile from './pages/DriverProfile';
 
 export default function App() {
   return (
@@ -42,6 +43,7 @@ export default function App() {
             <Route path="irt" element={<IRT />} />
           </Route>
           <Route path="/irt-review" element={<IRTReview />} />
+          <Route path="/driver/:id" element={<DriverProfile />} />
           <Route path="*" element={<Navigate to="/" replace />} />
         </Routes>
       </AuthProvider>

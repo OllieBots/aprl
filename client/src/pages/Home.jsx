@@ -1,5 +1,6 @@
-import { useState } from 'react';
-import { Link } from 'react-router-dom';
+import { useState, useEffect, useRef } from 'react';
+import { Link, useNavigate } from 'react-router-dom';
+import api from '../lib/api';
 
 // ─── Mock data (replace with API calls later) ────────────────────────────────
 
@@ -93,6 +94,7 @@ export default function Home() {
       <Hero />
       <SponsorBanner sponsors={SPONSORS} />
       <OpenRecruitment leagues={OPEN_LEAGUES} />
+      <DriverSearch />
       <SponsorBanner sponsors={SPONSORS} slim />
       <NewsSection articles={NEWS} />
       <Footer />
@@ -128,9 +130,9 @@ function Nav() {
         {/* Nav links */}
         <div className="flex items-center gap-8">
           {[
-            { label: 'Leagues',     href: '#leagues' },
-            { label: 'News',        href: '#news' },
-            { label: 'About',       href: '#about' },
+            { label: 'Leagues', href: '#leagues' },
+            { label: 'Drivers', href: '#drivers' },
+            { label: 'News',    href: '#news' },
           ].map(item => (
             <a
               key={item.label}
@@ -424,6 +426,139 @@ function LeagueCard({ league }) {
         </button>
       </div>
     </div>
+  );
+}
+
+// ─── Driver Search ────────────────────────────────────────────────────────────
+
+function DriverSearch() {
+  const [query, setQuery] = useState('');
+  const [results, setResults] = useState([]);
+  const [loading, setLoading] = useState(false);
+  const [searched, setSearched] = useState(false);
+  const navigate = useNavigate();
+  const timerRef = useRef(null);
+
+  useEffect(() => {
+    if (query.trim().length < 2) {
+      setResults([]);
+      setSearched(false);
+      return;
+    }
+    clearTimeout(timerRef.current);
+    timerRef.current = setTimeout(async () => {
+      setLoading(true);
+      try {
+        const data = await api.get('/public/drivers', { params: { q: query.trim() } });
+        setResults(data);
+        setSearched(true);
+      } catch {
+        setResults([]);
+      } finally {
+        setLoading(false);
+      }
+    }, 350);
+    return () => clearTimeout(timerRef.current);
+  }, [query]);
+
+  return (
+    <section id="drivers" className="py-16" style={{ borderTop: '1px solid var(--border)' }}>
+      <div className="max-w-6xl mx-auto px-8">
+        {/* Heading */}
+        <div className="flex items-end justify-between mb-8">
+          <div>
+            <div className="text-xs font-semibold uppercase tracking-widest mb-2" style={{ color: 'var(--accent)' }}>
+              Community
+            </div>
+            <h2 className="font-display font-bold text-3xl uppercase" style={{ color: 'var(--text)', letterSpacing: '0.04em' }}>
+              Find a Driver
+            </h2>
+          </div>
+        </div>
+
+        {/* Search input */}
+        <div style={{ position: 'relative', maxWidth: 480, marginBottom: 24 }}>
+          <div style={{ position: 'absolute', left: 14, top: '50%', transform: 'translateY(-50%)', color: 'var(--text3)', pointerEvents: 'none' }}>
+            <svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
+              <circle cx="11" cy="11" r="8"/><line x1="21" y1="21" x2="16.65" y2="16.65"/>
+            </svg>
+          </div>
+          <input
+            type="text"
+            placeholder="Search by iRacing name…"
+            value={query}
+            onChange={e => setQuery(e.target.value)}
+            style={{
+              width: '100%', height: 44, paddingLeft: 42, paddingRight: 16,
+              background: 'var(--bg2)', border: '1px solid var(--border2)',
+              borderRadius: 8, fontSize: 14, color: 'var(--text)',
+              outline: 'none', boxSizing: 'border-box',
+            }}
+            onFocus={e => e.target.style.borderColor = 'var(--accent)'}
+            onBlur={e => e.target.style.borderColor = 'var(--border2)'}
+          />
+          {loading && (
+            <div style={{ position: 'absolute', right: 14, top: '50%', transform: 'translateY(-50%)', color: 'var(--text3)', fontSize: 12 }}>
+              …
+            </div>
+          )}
+        </div>
+
+        {/* Results */}
+        {searched && results.length === 0 && (
+          <p style={{ fontSize: 13, color: 'var(--text3)' }}>No drivers found for "{query}"</p>
+        )}
+        {results.length > 0 && (
+          <div className="grid grid-cols-3 gap-4">
+            {results.map(d => (
+              <div
+                key={d.id}
+                onClick={() => navigate(`/driver/${d.id}`)}
+                style={{
+                  background: 'var(--bg2)', border: '1px solid var(--border)', borderRadius: 8,
+                  padding: '14px 16px', cursor: 'pointer', display: 'flex', alignItems: 'center', gap: 14,
+                  transition: 'border-color 0.15s',
+                }}
+                onMouseEnter={e => e.currentTarget.style.borderColor = 'var(--border2)'}
+                onMouseLeave={e => e.currentTarget.style.borderColor = 'var(--border)'}
+              >
+                {/* Number */}
+                <div style={{
+                  width: 44, height: 44, borderRadius: 8, background: 'var(--accent)',
+                  display: 'flex', alignItems: 'center', justifyContent: 'center',
+                  fontSize: d.car_number ? 13 : 18, fontWeight: 900, color: '#fff', flexShrink: 0,
+                }}>
+                  {d.car_number ? `#${d.car_number}` : d.name?.[0]?.toUpperCase()}
+                </div>
+                <div style={{ flex: 1, minWidth: 0 }}>
+                  <div style={{ fontSize: 14, fontWeight: 700, color: 'var(--text)', whiteSpace: 'nowrap', overflow: 'hidden', textOverflow: 'ellipsis' }}>
+                    {d.name}
+                  </div>
+                  <div style={{ fontSize: 12, color: 'var(--text3)', marginTop: 2 }}>
+                    {d.car_model || 'No car set'}
+                    {d.irating ? ` · iR ${d.irating.toLocaleString()}` : ''}
+                  </div>
+                  {d.active_leagues > 0 && (
+                    <div style={{ fontSize: 11, color: 'var(--accent)', marginTop: 2 }}>
+                      {d.active_leagues} league{d.active_leagues > 1 ? 's' : ''}
+                    </div>
+                  )}
+                </div>
+                <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" style={{ color: 'var(--text3)', flexShrink: 0 }}>
+                  <line x1="5" y1="12" x2="19" y2="12"/><polyline points="12 5 19 12 12 19"/>
+                </svg>
+              </div>
+            ))}
+          </div>
+        )}
+
+        {!searched && (
+          <p style={{ fontSize: 13, color: 'var(--text3)' }}>
+            Search for any registered driver to view their profile and career stats.
+          </p>
+        )}
+      </div>
+    </section>
   );
 }
 

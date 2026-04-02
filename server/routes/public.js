@@ -123,4 +123,83 @@ router.get('/leagues/:slug/results', async (req, res) => {
   }
 });
 
+// GET /api/public/drivers?q= — search drivers by name
+router.get('/drivers', async (req, res) => {
+  try {
+    const { q } = req.query;
+    if (!q || q.trim().length < 2) return res.json([]);
+    const term = `%${q.trim()}%`;
+    const drivers = await db.all(`
+      SELECT d.id, d.name, d.car_number, d.car_model, d.irating,
+        d.safety_rating_class, d.safety_rating_value,
+        u.iracing_cust_id,
+        COUNT(DISTINCT lm.league_id)::int as active_leagues
+      FROM drivers d
+      LEFT JOIN users u ON d.user_id = u.id
+      LEFT JOIN league_memberships lm ON lm.user_id = u.id AND lm.status = 'active'
+      WHERE d.name ILIKE ? AND d.status = 'active'
+      GROUP BY d.id, d.name, d.car_number, d.car_model, d.irating,
+        d.safety_rating_class, d.safety_rating_value, u.iracing_cust_id
+      ORDER BY d.name ASC
+      LIMIT 12
+    `, term);
+    res.json(drivers);
+  } catch (err) {
+    res.status(500).json({ error: err.message });
+  }
+});
+
+// GET /api/public/drivers/:id — driver profile
+router.get('/drivers/:id', async (req, res) => {
+  try {
+    const driver = await db.get(`
+      SELECT d.*, u.iracing_cust_id, u.id as user_id
+      FROM drivers d
+      LEFT JOIN users u ON d.user_id = u.id
+      WHERE d.id = ?
+    `, req.params.id);
+    if (!driver) return res.status(404).json({ error: 'Driver not found' });
+
+    const stats = await db.get(`
+      SELECT
+        COUNT(DISTINCT rr.race_id)::int as starts,
+        SUM(CASE WHEN rr.finish_position = 1 THEN 1 ELSE 0 END)::int as wins,
+        SUM(CASE WHEN rr.finish_position <= 3 THEN 1 ELSE 0 END)::int as podiums,
+        COALESCE(SUM(rr.points_awarded + COALESCE(rr.points_adjustment, 0)), 0)::int as total_points,
+        ROUND(AVG(rr.finish_position)::numeric, 1)::float as avg_finish,
+        ROUND(AVG(rr.incidents)::numeric, 2)::float as avg_incidents
+      FROM race_results rr WHERE rr.driver_id = ?
+    `, driver.id);
+
+    const recentResults = await db.all(`
+      SELECT rr.finish_position, rr.points_awarded, rr.incidents, rr.dnf,
+        r.round_number, r.track_name, r.scheduled_at,
+        l.name as league_name, l.slug as league_slug
+      FROM race_results rr
+      JOIN races r ON rr.race_id = r.id
+      JOIN seasons s ON r.season_id = s.id
+      JOIN league l ON s.league_id = l.id
+      WHERE rr.driver_id = ?
+      ORDER BY r.scheduled_at DESC
+      LIMIT 10
+    `, driver.id);
+
+    let leagues = [];
+    if (driver.user_id) {
+      leagues = await db.all(`
+        SELECT lm.status, l.name as league_name, l.slug,
+          s.name as season_name, s.series, s.car_class
+        FROM league_memberships lm
+        JOIN league l ON lm.league_id = l.id
+        LEFT JOIN seasons s ON s.league_id = l.id AND s.is_active = 1
+        WHERE lm.user_id = ? AND lm.status = 'active'
+      `, driver.user_id);
+    }
+
+    res.json({ driver, stats, recentResults, leagues });
+  } catch (err) {
+    res.status(500).json({ error: err.message });
+  }
+});
+
 module.exports = router;
