@@ -51,10 +51,13 @@ export default function Settings() {
     e?.preventDefault();
     setSavingLeague(true);
     setSaveErr('');
+    console.log('[Settings] saving leagueData:', leagueData);
     try {
-      await league.update(leagueData);
+      const result = await league.update(leagueData);
+      console.log('[Settings] save result:', result);
       showMsg('Saved');
     } catch (err) {
+      console.error('[Settings] save error:', err);
       setSaveErr(err.message);
     } finally {
       setSavingLeague(false);
