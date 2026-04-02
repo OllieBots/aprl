@@ -3,30 +3,6 @@ import { Link, useNavigate } from 'react-router-dom';
 import api from '../lib/api';
 import { useAuth } from '../context/AuthContext';
 
-const NEWS = [
-  {
-    id: 1,
-    date: 'Mar 28, 2026',
-    category: 'Platform',
-    title: 'APRL v1.0 launches — free league management for iRacing',
-    excerpt: 'Today we\'re opening APRL to all iRacing league admins. Create your league, import results directly from iRacing, and post standings to Discord automatically.',
-  },
-  {
-    id: 2,
-    date: 'Mar 25, 2026',
-    category: 'Feature',
-    title: 'Discord bot now supports live race countdown commands',
-    excerpt: 'The /nextrace command now posts a live countdown embed that updates in real-time. Configure your bot in the Admin panel under Discord settings.',
-  },
-  {
-    id: 3,
-    date: 'Mar 20, 2026',
-    category: 'Guide',
-    title: 'How to import race results from iRacing in under 60 seconds',
-    excerpt: 'Grab your subsession ID from iRacing, paste it into the Results page, and APRL pulls in full lap data, incidents, and positions automatically.',
-  },
-];
-
 const SPONSORS = [
   { id: 1, name: 'Sponsor One',   placeholder: true },
   { id: 2, name: 'Sponsor Two',   placeholder: true },
@@ -37,11 +13,20 @@ const SPONSORS = [
 
 export default function Home() {
   const [recruitingLeagues, setRecruitingLeagues] = useState([]);
+  const [news, setNews] = useState([]);
+  const [newsLoading, setNewsLoading] = useState(true);
 
   useEffect(() => {
     api.get('/public/leagues', { params: { recruiting: 1 } })
       .then(setRecruitingLeagues)
       .catch(() => {});
+  }, []);
+
+  useEffect(() => {
+    api.get('/public/iracing-news')
+      .then(setNews)
+      .catch(() => {})
+      .finally(() => setNewsLoading(false));
   }, []);
 
   return (
@@ -52,7 +37,7 @@ export default function Home() {
       <OpenRecruitment leagues={recruitingLeagues} />
       <DriverSearch />
       <SponsorBanner sponsors={SPONSORS} slim />
-      <NewsSection articles={NEWS} />
+      <NewsSection articles={news} loading={newsLoading} />
       <Footer />
     </div>
   );
@@ -582,7 +567,7 @@ function DriverSearch() {
 
 // ─── News ─────────────────────────────────────────────────────────────────────
 
-function NewsSection({ articles }) {
+function NewsSection({ articles, loading }) {
   return (
     <section
       id="news"
@@ -590,23 +575,45 @@ function NewsSection({ articles }) {
       style={{ background: 'var(--bg2)', borderTop: '1px solid var(--border)' }}
     >
       <div className="max-w-6xl mx-auto px-8">
-        <div className="mb-8">
-          <div className="text-xs font-semibold uppercase tracking-widest mb-2" style={{ color: 'var(--accent)' }}>
-            Latest
+        <div className="flex items-end justify-between mb-8">
+          <div>
+            <div className="text-xs font-semibold uppercase tracking-widest mb-2" style={{ color: 'var(--accent)' }}>
+              Latest
+            </div>
+            <h2
+              className="font-display font-bold text-3xl uppercase"
+              style={{ color: 'var(--text)', letterSpacing: '0.04em' }}
+            >
+              iRacing News
+            </h2>
           </div>
-          <h2
-            className="font-display font-bold text-3xl uppercase"
-            style={{ color: 'var(--text)', letterSpacing: '0.04em' }}
+          <a
+            href="https://www.iracing.com/news/"
+            target="_blank"
+            rel="noopener noreferrer"
+            style={{ fontSize: 13, color: 'var(--text3)', textDecoration: 'none', fontWeight: 600 }}
+            onMouseEnter={e => e.currentTarget.style.color = 'var(--text)'}
+            onMouseLeave={e => e.currentTarget.style.color = 'var(--text3)'}
           >
-            News & Updates
-          </h2>
+            iracing.com →
+          </a>
         </div>
 
-        <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fill, minmax(260px, 1fr))', gap: 20 }}>
-          {articles.map((article, i) => (
-            <NewsCard key={article.id} article={article} featured={i === 0} />
-          ))}
-        </div>
+        {loading ? (
+          <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fill, minmax(260px, 1fr))', gap: 20 }}>
+            {[1,2,3].map(i => (
+              <div key={i} style={{ background: 'var(--bg3)', border: '1px solid var(--border)', borderRadius: 8, height: 220, animation: 'pulse 1.5s ease-in-out infinite' }} />
+            ))}
+          </div>
+        ) : articles.length === 0 ? (
+          <p style={{ fontSize: 13, color: 'var(--text3)' }}>News unavailable right now. Check back soon.</p>
+        ) : (
+          <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fill, minmax(260px, 1fr))', gap: 20 }}>
+            {articles.map((article, i) => (
+              <NewsCard key={article.link || i} article={article} featured={i === 0} />
+            ))}
+          </div>
+        )}
       </div>
     </section>
   );
@@ -614,32 +621,46 @@ function NewsSection({ articles }) {
 
 function NewsCard({ article, featured }) {
   return (
-    <div
-      className="rounded-md p-5 flex flex-col gap-3 cursor-pointer"
-      style={{ background: 'var(--bg3)', border: '1px solid var(--border)' }}
+    <a
+      href={article.link}
+      target="_blank"
+      rel="noopener noreferrer"
+      className="rounded-md flex flex-col overflow-hidden cursor-pointer"
+      style={{ background: 'var(--bg3)', border: '1px solid var(--border)', textDecoration: 'none', transition: 'border-color 0.15s' }}
       onMouseEnter={e => e.currentTarget.style.borderColor = 'var(--border2)'}
       onMouseLeave={e => e.currentTarget.style.borderColor = 'var(--border)'}
     >
-      <div className="flex items-center justify-between">
-        <SmallBadge label={article.category} color="var(--blue)" />
-        <span className="text-xs" style={{ color: 'var(--text3)' }}>{article.date}</span>
+      {article.imageUrl && (
+        <div style={{ width: '100%', height: 140, overflow: 'hidden', flexShrink: 0 }}>
+          <img
+            src={article.imageUrl}
+            alt=""
+            style={{ width: '100%', height: '100%', objectFit: 'cover' }}
+            onError={e => { e.currentTarget.parentElement.style.display = 'none'; }}
+          />
+        </div>
+      )}
+      <div className="p-5 flex flex-col gap-3 flex-1">
+        <div className="flex items-center justify-between">
+          <SmallBadge label={article.category || 'News'} color="var(--blue)" />
+          <span className="text-xs" style={{ color: 'var(--text3)' }}>{article.date}</span>
+        </div>
+        <h3
+          className={`font-display font-bold uppercase leading-tight ${featured ? 'text-lg' : 'text-base'}`}
+          style={{ color: 'var(--text)', letterSpacing: '0.03em' }}
+        >
+          {article.title}
+        </h3>
+        {article.excerpt && (
+          <p className="text-sm leading-relaxed flex-1" style={{ color: 'var(--text2)' }}>
+            {article.excerpt}
+          </p>
+        )}
+        <span className="text-xs font-semibold" style={{ color: 'var(--accent)' }}>
+          Read on iRacing.com →
+        </span>
       </div>
-      <h3
-        className={`font-display font-bold uppercase leading-tight ${featured ? 'text-lg' : 'text-base'}`}
-        style={{ color: 'var(--text)', letterSpacing: '0.03em' }}
-      >
-        {article.title}
-      </h3>
-      <p className="text-sm leading-relaxed flex-1" style={{ color: 'var(--text2)' }}>
-        {article.excerpt}
-      </p>
-      <span
-        className="text-xs font-semibold"
-        style={{ color: 'var(--accent)' }}
-      >
-        Read more →
-      </span>
-    </div>
+    </a>
   );
 }
 

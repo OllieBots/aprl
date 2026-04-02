@@ -329,4 +329,77 @@ router.get('/drivers/:id', async (req, res) => {
   }
 });
 
+// ─── iRacing News RSS ────────────────────────────────────────────────────────
+
+const IRACING_FEED = 'https://www.iracing.com/feed/';
+const CACHE_TTL_MS = 30 * 60 * 1000; // 30 min
+let newsCache = { data: null, at: 0 };
+
+function parseRSS(xml) {
+  const items = [];
+  const itemRx = /<item>([\s\S]*?)<\/item>/g;
+  let m;
+  while ((m = itemRx.exec(xml)) !== null) {
+    const block = m[1];
+    const get = (tag) => {
+      const r = new RegExp(`<${tag}[^>]*>(?:<!\\[CDATA\\[)?([\\s\\S]*?)(?:\\]\\]>)?<\\/${tag}>`, 'i');
+      const found = r.exec(block);
+      return found ? found[1].trim() : '';
+    };
+    const getAttr = (tag, attr) => {
+      const r = new RegExp(`<${tag}[^>]*\\s${attr}="([^"]*)"`, 'i');
+      const found = r.exec(block);
+      return found ? found[1] : '';
+    };
+
+    const rawDesc = get('description');
+    const plain = rawDesc.replace(/<[^>]+>/g, '').replace(/&[a-z#0-9]+;/gi, ' ').replace(/\s+/g, ' ').trim();
+    const excerpt = plain.length > 200 ? plain.slice(0, 197) + '…' : plain;
+
+    const contentEncoded = get('content:encoded') || get('content');
+    const imgMatch = /<img[^>]+src="([^"]+)"/i.exec(contentEncoded);
+    const mediaUrl = getAttr('media:content', 'url') || getAttr('enclosure', 'url');
+    const imageUrl = mediaUrl || (imgMatch ? imgMatch[1] : '');
+
+    const title = get('title');
+    if (!title) continue;
+
+    const pubDate = get('pubDate');
+    const category = get('category');
+    const link = get('link') || getAttr('link', 'href');
+
+    items.push({
+      title,
+      link,
+      excerpt,
+      imageUrl,
+      category: category ? category.split(',')[0].trim() : 'News',
+      date: pubDate ? new Date(pubDate).toLocaleDateString('en-US', { month: 'short', day: 'numeric', year: 'numeric' }) : '',
+    });
+  }
+  return items.slice(0, 9);
+}
+
+// GET /api/public/iracing-news
+router.get('/iracing-news', async (req, res) => {
+  try {
+    const now = Date.now();
+    if (newsCache.data && now - newsCache.at < CACHE_TTL_MS) {
+      return res.json(newsCache.data);
+    }
+    const response = await fetch(IRACING_FEED, {
+      headers: { 'User-Agent': 'APRL/1.0 (+https://aprl.app)' },
+      signal: AbortSignal.timeout(8000),
+    });
+    if (!response.ok) throw new Error(`RSS fetch failed: ${response.status}`);
+    const xml = await response.text();
+    const items = parseRSS(xml);
+    newsCache = { data: items, at: now };
+    res.json(items);
+  } catch {
+    if (newsCache.data) return res.json(newsCache.data);
+    res.json([]);
+  }
+});
+
 module.exports = router;
