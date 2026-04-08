@@ -1,4 +1,4 @@
-import { useState, useEffect } from 'react';
+import { useState, useEffect, useRef } from 'react';
 import PageHeader from '../../components/PageHeader';
 import Card from '../../components/Card';
 import Badge from '../../components/Badge';
@@ -19,8 +19,9 @@ export default function Drivers() {
   const [detailDriver, setDetailDriver] = useState(null);
   const [editDriver, setEditDriver] = useState(null);
   const [loading, setLoading] = useState(true);
-  const [carNumEdit, setCarNumEdit] = useState(null); // { membershipId, value }
+  const [carNumEdit, setCarNumEdit] = useState(null); // { driverId, value }
   const [carNumError, setCarNumError] = useState('');
+  const carNumSaving = useRef(false);
 
   useEffect(() => { loadAll(); }, []);
 
@@ -65,9 +66,11 @@ export default function Drivers() {
   );
 
   async function saveCarNumber(driver) {
+    if (carNumSaving.current) return;
     const membership = membershipByIR[String(driver.iracing_cust_id)];
-    if (!membership) return;
-    const value = carNumEdit?.value?.trim() || '';
+    if (!membership || !carNumEdit) return;
+    carNumSaving.current = true;
+    const value = carNumEdit.value.trim();
     setCarNumError('');
     try {
       await members.update(ownedLeague.id, membership.id, { car_number: value });
@@ -75,6 +78,8 @@ export default function Drivers() {
       setCarNumEdit(null);
     } catch (err) {
       setCarNumError(err.message);
+    } finally {
+      carNumSaving.current = false;
     }
   }
 
