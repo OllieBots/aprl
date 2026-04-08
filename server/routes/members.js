@@ -90,17 +90,32 @@ router.post('/:leagueId/invite', requireAuth, async (req, res) => {
   }
 });
 
-// PUT /api/members/:leagueId/:membershipId — approve, reject, or change role
+// PUT /api/members/:leagueId/:membershipId — approve, reject, change role, or override car number
 router.put('/:leagueId/:membershipId', requireAuth, async (req, res) => {
   try {
     if (!await requireOwner(req, res, req.params.leagueId)) return;
-    const { status, role } = req.body;
+    const { status, role, car_number } = req.body;
 
     const membership = await db.get(
       'SELECT * FROM league_memberships WHERE id = ? AND league_id = ?',
       req.params.membershipId, req.params.leagueId
     );
     if (!membership) return res.status(404).json({ error: 'Membership not found' });
+
+    // Car number override — check for conflicts first
+    if (car_number !== undefined) {
+      if (car_number) {
+        const conflict = await db.get(
+          'SELECT id FROM league_memberships WHERE league_id = ? AND car_number = ? AND id != ?',
+          req.params.leagueId, car_number, req.params.membershipId
+        );
+        if (conflict) return res.status(409).json({ error: `#${car_number} is already taken in this league` });
+      }
+      await db.run(
+        'UPDATE league_memberships SET car_number = ? WHERE id = ?',
+        car_number || null, req.params.membershipId
+      );
+    }
 
     await db.run(
       'UPDATE league_memberships SET status = ?, role = ? WHERE id = ?',

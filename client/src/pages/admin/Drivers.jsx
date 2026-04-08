@@ -19,6 +19,8 @@ export default function Drivers() {
   const [detailDriver, setDetailDriver] = useState(null);
   const [editDriver, setEditDriver] = useState(null);
   const [loading, setLoading] = useState(true);
+  const [carNumEdit, setCarNumEdit] = useState(null); // { membershipId, value }
+  const [carNumError, setCarNumError] = useState('');
 
   useEffect(() => { loadAll(); }, []);
 
@@ -55,6 +57,25 @@ export default function Drivers() {
     if (!confirm('Revoke this invite?')) return;
     await members.remove(ownedLeague.id, membershipId);
     setMemberList(prev => prev.filter(m => m.id !== membershipId));
+  }
+
+  // Map iracing_cust_id -> membership so we can look up membership id per driver
+  const membershipByIR = Object.fromEntries(
+    memberList.filter(m => m.iracing_cust_id).map(m => [String(m.iracing_cust_id), m])
+  );
+
+  async function saveCarNumber(driver) {
+    const membership = membershipByIR[String(driver.iracing_cust_id)];
+    if (!membership) return;
+    const value = carNumEdit?.value?.trim() || '';
+    setCarNumError('');
+    try {
+      await members.update(ownedLeague.id, membership.id, { car_number: value });
+      setMemberList(prev => prev.map(m => m.id === membership.id ? { ...m, car_number: value || null } : m));
+      setCarNumEdit(null);
+    } catch (err) {
+      setCarNumError(err.message);
+    }
   }
 
   const active = driverList.filter(d => d.status === 'active');
@@ -190,14 +211,46 @@ export default function Drivers() {
                       {driver.car_model || '—'}
                     </td>
                     <td className="px-4 py-3">
-                      {driver.car_number ? (
-                        <span
-                          className="inline-flex items-center justify-center w-8 h-8 rounded font-display font-bold text-sm"
-                          style={{ background: 'var(--bg4)', color: 'var(--text)' }}
-                        >
-                          #{driver.car_number}
-                        </span>
-                      ) : '—'}
+                      {(() => {
+                        const membership = membershipByIR[String(driver.iracing_cust_id)];
+                        const displayNum = membership?.car_number ?? driver.car_number;
+                        const isEditing = carNumEdit?.driverId === driver.id;
+                        if (isEditing) {
+                          return (
+                            <div style={{ display: 'flex', flexDirection: 'column', gap: 2 }}>
+                              <input
+                                autoFocus
+                                value={carNumEdit.value}
+                                onChange={e => setCarNumEdit(v => ({ ...v, value: e.target.value }))}
+                                onKeyDown={e => {
+                                  if (e.key === 'Enter') saveCarNumber(driver);
+                                  if (e.key === 'Escape') { setCarNumEdit(null); setCarNumError(''); }
+                                }}
+                                onBlur={() => saveCarNumber(driver)}
+                                placeholder="e.g. 44"
+                                style={{ width: 56, padding: '3px 6px', borderRadius: 4, background: 'var(--bg3)', border: '1px solid var(--accent)', color: 'var(--text)', fontSize: 13, outline: 'none' }}
+                              />
+                              {carNumError && <span style={{ fontSize: 10, color: 'var(--accent)' }}>{carNumError}</span>}
+                            </div>
+                          );
+                        }
+                        return (
+                          <button
+                            onClick={() => { setCarNumError(''); setCarNumEdit({ driverId: driver.id, value: displayNum || '' }); }}
+                            title="Click to override car number"
+                            style={{ background: 'none', border: 'none', cursor: membership ? 'pointer' : 'default', padding: 0 }}
+                          >
+                            {displayNum ? (
+                              <span className="inline-flex items-center justify-center w-8 h-8 rounded font-display font-bold text-sm"
+                                style={{ background: 'var(--bg4)', color: 'var(--text)' }}>
+                                #{displayNum}
+                              </span>
+                            ) : (
+                              <span style={{ color: 'var(--text3)', fontSize: 13 }}>{membership ? '+ set' : '—'}</span>
+                            )}
+                          </button>
+                        );
+                      })()}
                     </td>
                     <td className="px-4 py-3 text-sm font-semibold" style={{ color: 'var(--text)' }}>
                       {driver.irating?.toLocaleString() || '—'}
